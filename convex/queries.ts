@@ -120,3 +120,11 @@ export const listMessages = query({
         return enrichedMessages;
 	},
 });
+
+// List notifications
+export const listNotifications = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("notifications").collect();
+  },
+});

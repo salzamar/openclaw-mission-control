@@ -11,6 +11,13 @@ const STATUS_OPTIONS = [
 	{ value: "done", label: "Done" },
 ] as const;
 
+const PRIORITY_OPTIONS = [
+	{ value: "critical", label: "Critical", icon: "🔴", description: "Needs immediate attention" },
+	{ value: "high", label: "High", icon: "🟡", description: "Important, address soon" },
+	{ value: "normal", label: "Normal", icon: "🟢", description: "Standard priority" },
+	{ value: "low", label: "Low", icon: "🔵", description: "Can wait" },
+] as const;
+
 const COLOR_SWATCHES = [
 	"#3b82f6",
 	"#8b5cf6",
@@ -21,6 +28,8 @@ const COLOR_SWATCHES = [
 	"#06b6d4",
 	"#64748b",
 ];
+
+type TaskPriority = "critical" | "high" | "normal" | "low";
 
 type AddTaskModalProps = {
 	onClose: () => void;
@@ -36,6 +45,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({ onClose, onCreated, initial
 	const [title, setTitle] = useState("");
 	const [description, setDescription] = useState("");
 	const [status, setStatus] = useState(initialAssigneeId ? "assigned" : "inbox");
+	const [priority, setPriority] = useState<TaskPriority>("normal");
 	const [tagInput, setTagInput] = useState("");
 	const [tags, setTags] = useState<string[]>([]);
 	const [assigneeId, setAssigneeId] = useState(initialAssigneeId ?? "");
@@ -73,6 +83,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({ onClose, onCreated, initial
 					status,
 					tags,
 					borderColor: borderColor || undefined,
+					priority,
 				});
 
 				if (assigneeId && agents) {
@@ -95,6 +106,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({ onClose, onCreated, initial
 			title,
 			description,
 			status,
+			priority,
 			tags,
 			borderColor,
 			assigneeId,
@@ -161,22 +173,65 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({ onClose, onCreated, initial
 						/>
 					</div>
 
-					{/* Status */}
-					<div>
-						<label className="block text-[11px] font-semibold text-muted-foreground tracking-wide mb-1.5">
-							STATUS
-						</label>
-						<select
-							value={status}
-							onChange={(e) => setStatus(e.target.value)}
-							className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[var(--accent-blue)] focus:border-transparent"
-						>
-							{STATUS_OPTIONS.map((opt) => (
-								<option key={opt.value} value={opt.value}>
+					{/* Status and Priority Row */}
+					<div className="grid grid-cols-2 gap-4">
+						{/* Status */}
+						<div>
+							<label className="block text-[11px] font-semibold text-muted-foreground tracking-wide mb-1.5">
+								STATUS
+							</label>
+							<select
+								value={status}
+								onChange={(e) => setStatus(e.target.value)}
+								className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[var(--accent-blue)] focus:border-transparent"
+							>
+								{STATUS_OPTIONS.map((opt) => (
+									<option key={opt.value} value={opt.value}>
+										{opt.label}
+									</option>
+								))}
+							</select>
+						</div>
+
+						{/* Priority */}
+						<div>
+							<label className="block text-[11px] font-semibold text-muted-foreground tracking-wide mb-1.5">
+								PRIORITY
+							</label>
+							<select
+								value={priority}
+								onChange={(e) => setPriority(e.target.value as TaskPriority)}
+								className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[var(--accent-blue)] focus:border-transparent"
+							>
+								{PRIORITY_OPTIONS.map((opt) => (
+									<option key={opt.value} value={opt.value}>
+										{opt.icon} {opt.label}
+									</option>
+								))}
+							</select>
+						</div>
+					</div>
+
+					{/* Priority Visual Indicator */}
+					<div className="flex items-center gap-2 p-2 bg-muted/50 rounded-lg">
+						{PRIORITY_OPTIONS.map((opt) => (
+							<button
+								key={opt.value}
+								type="button"
+								onClick={() => setPriority(opt.value as TaskPriority)}
+								className={`flex-1 flex flex-col items-center gap-1 p-2 rounded-lg transition-all ${
+									priority === opt.value
+										? "bg-white shadow-sm ring-2 ring-[var(--accent-blue)]"
+										: "hover:bg-white/50"
+								}`}
+								title={opt.description}
+							>
+								<span className="text-lg">{opt.icon}</span>
+								<span className="text-[10px] font-medium text-muted-foreground">
 									{opt.label}
-								</option>
-							))}
-						</select>
+								</span>
+							</button>
+						))}
 					</div>
 
 					{/* Tags */}

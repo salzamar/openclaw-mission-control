@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useConvex } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
@@ -14,14 +14,17 @@ import {
 } from "@dnd-kit/core";
 import TaskCard from "./TaskCard";
 import KanbanColumn from "./KanbanColumn";
+import SearchFilterBar from "./SearchFilterBar";
 
 type TaskStatus = "inbox" | "assigned" | "in_progress" | "review" | "done" | "archived";
+type TaskPriority = "critical" | "high" | "normal" | "low";
 
 interface Task {
 	_id: Id<"tasks">;
 	title: string;
 	description: string;
 	status: string;
+	priority?: TaskPriority;
 	assigneeIds: Id<"agents">[];
 	tags: string[];
 	borderColor?: string;
@@ -72,6 +75,18 @@ const MissionQueue: React.FC<MissionQueueProps> = ({ selectedTaskId, onSelectTas
 	const convex = useConvex();
 	const [activeTask, setActiveTask] = useState<Task | null>(null);
 
+	// Search and filter state
+	const [searchQuery, setSearchQuery] = useState("");
+	const [selectedTags, setSelectedTags] = useState<string[]>([]);
+	const [selectedAssignees, setSelectedAssignees] = useState<Id<"agents">[]>([]);
+	const [selectedPriorities, setSelectedPriorities] = useState<string[]>([]);
+
+	// Keyboard navigation state
+	const [focusedTaskIndex, setFocusedTaskIndex] = useState<number>(-1);
+	const [focusedColumnIndex, setFocusedColumnIndex] = useState<number>(0);
+	const taskRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+	const containerRef = useRef<HTMLDivElement>(null);
+
 	const currentUserAgent = agents?.find(a => a.name === "Manish");
 
 	const sensors = useSensors(
@@ -81,6 +96,181 @@ const MissionQueue: React.FC<MissionQueueProps> = ({ selectedTaskId, onSelectTas
 			},
 		})
 	);
+
+	// Extract all unique tags from tasks
+	const availableTags = useMemo(() => {
+		if (!tasks) return [];
+		const tagSet = new Set<string>();
+		tasks.forEach(task => {
+			task.tags.forEach(tag => tagSet.add(tag));
+		});
+		return Array.from(tagSet).sort();
+	}, [tasks]);
+
+	// Filter tasks based on search and filters
+	const filteredTasks = useMemo(() => {
+		if (!tasks) return [];
+
+		return tasks.filter((task) => {
+			// Search filter (title + description)
+			if (searchQuery) {
+				const query = searchQuery.toLowerCase();
+				const matchesSearch = 
+					task.title.toLowerCase().includes(query) ||
+					task.description.toLowerCase().includes(query);
+				if (!matchesSearch) return false;
+			}
+
+			// Tag filter
+			if (selectedTags.length > 0) {
+				const hasMatchingTag = selectedTags.some(tag => task.tags.includes(tag));
+				if (!hasMatchingTag) return false;
+			}
+
+			// Assignee filter
+			if (selectedAssignees.length > 0) {
+				const hasMatchingAssignee = selectedAssignees.some(
+					agentId => task.assigneeIds.includes(agentId)
+				);
+				if (!hasMatchingAssignee) return false;
+			}
+
+			// Priority filter
+			if (selectedPriorities.length > 0) {
+				const taskPriority = task.priority || "normal";
+				if (!selectedPriorities.includes(taskPriority)) return false;
+			}
+
+			return true;
+		});
+	}, [tasks, searchQuery, selectedTags, selectedAssignees, selectedPriorities]);
+
+	// Get tasks for each column
+	const getColumnTasks = useCallback((columnId: string) => {
+		return filteredTasks.filter(t => t.status === columnId);
+	}, [filteredTasks]);
+
+	// Flatten tasks for keyboard navigation
+	const flattenedTasks = useMemo(() => {
+		const displayColumns = showArchived ? [...columns, archivedColumn] : columns;
+		const result: { task: Task; columnIndex: number }[] = [];
+		
+		displayColumns.forEach((col, colIndex) => {
+			const colTasks = getColumnTasks(col.id);
+			colTasks.forEach(task => {
+				result.push({ task: task as Task, columnIndex: colIndex });
+			});
+		});
+		
+		return result;
+	}, [getColumnTasks, showArchived]);
+
+	// Keyboard navigation handler
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			// Only handle keyboard navigation when not in an input
+			if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+				return;
+			}
+
+			const displayColumns = showArchived ? [...columns, archivedColumn] : columns;
+
+			switch (e.key) {
+				case "ArrowDown":
+				case "j": // Vim-style navigation
+					e.preventDefault();
+					setFocusedTaskIndex(prev => {
+						const next = prev + 1;
+						return next < flattenedTasks.length ? next : prev;
+					});
+					break;
+
+				case "ArrowUp":
+				case "k": // Vim-style navigation
+					e.preventDefault();
+					setFocusedTaskIndex(prev => {
+						const next = prev - 1;
+						return next >= 0 ? next : 0;
+					});
+					break;
+
+				case "ArrowRight":
+				case "l": // Vim-style navigation
+					e.preventDefault();
+					setFocusedColumnIndex(prev => {
+						const next = prev + 1;
+						return next < displayColumns.length ? next : prev;
+					});
+					// Find first task in new column
+					{
+						const newColId = displayColumns[Math.min(focusedColumnIndex + 1, displayColumns.length - 1)].id;
+						const firstTaskIndex = flattenedTasks.findIndex(
+							({ task }) => task.status === newColId
+						);
+						if (firstTaskIndex >= 0) {
+							setFocusedTaskIndex(firstTaskIndex);
+						}
+					}
+					break;
+
+				case "ArrowLeft":
+				case "h": // Vim-style navigation
+					e.preventDefault();
+					setFocusedColumnIndex(prev => {
+						const next = prev - 1;
+						return next >= 0 ? next : 0;
+					});
+					// Find first task in new column
+					{
+						const newColId = displayColumns[Math.max(focusedColumnIndex - 1, 0)].id;
+						const firstTaskIndex = flattenedTasks.findIndex(
+							({ task }) => task.status === newColId
+						);
+						if (firstTaskIndex >= 0) {
+							setFocusedTaskIndex(firstTaskIndex);
+						}
+					}
+					break;
+
+				case "Enter":
+				case " ": // Space to select
+					e.preventDefault();
+					if (focusedTaskIndex >= 0 && focusedTaskIndex < flattenedTasks.length) {
+						const { task } = flattenedTasks[focusedTaskIndex];
+						onSelectTask(task._id);
+					}
+					break;
+
+				case "Escape":
+					e.preventDefault();
+					setFocusedTaskIndex(-1);
+					break;
+
+				case "/": // Quick search
+					e.preventDefault();
+					const searchInput = document.querySelector('input[placeholder="Search tasks..."]') as HTMLInputElement;
+					if (searchInput) {
+						searchInput.focus();
+					}
+					break;
+			}
+		};
+
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, [flattenedTasks, focusedTaskIndex, focusedColumnIndex, showArchived, onSelectTask]);
+
+	// Scroll focused task into view
+	useEffect(() => {
+		if (focusedTaskIndex >= 0 && focusedTaskIndex < flattenedTasks.length) {
+			const { task } = flattenedTasks[focusedTaskIndex];
+			const element = taskRefs.current.get(task._id);
+			if (element) {
+				element.scrollIntoView({ behavior: "smooth", block: "nearest" });
+				element.focus();
+			}
+		}
+	}, [focusedTaskIndex, flattenedTasks]);
 
 	if (tasks === undefined || agents === undefined) {
 		return (
@@ -202,22 +392,43 @@ const MissionQueue: React.FC<MissionQueueProps> = ({ selectedTaskId, onSelectTas
 	};
 
 	const displayColumns = showArchived ? [...columns, archivedColumn] : columns;
-	const archivedCount = tasks.filter((t) => t.status === "archived").length;
+	const archivedCount = filteredTasks.filter((t) => t.status === "archived").length;
+	const totalFiltered = filteredTasks.filter((t) => t.status !== "done" && t.status !== "archived").length;
+
+	// Register task ref for keyboard navigation
+	const registerTaskRef = (taskId: string, element: HTMLDivElement | null) => {
+		if (element) {
+			taskRefs.current.set(taskId, element);
+		} else {
+			taskRefs.current.delete(taskId);
+		}
+	};
 
 	return (
-		<main className="[grid-area:main] bg-secondary flex flex-col overflow-hidden">
+		<main className="[grid-area:main] bg-secondary flex flex-col overflow-hidden" ref={containerRef}>
+			{/* Header with stats */}
 			<div className="flex items-center justify-between px-6 py-5 bg-white border-b border-border">
 				<div className="text-[11px] font-bold tracking-widest text-muted-foreground flex items-center gap-2">
 					<span className="w-1.5 h-1.5 bg-[var(--accent-orange)] rounded-full" />{" "}
 					MISSION QUEUE
 				</div>
-				<div className="flex gap-2">
+				<div className="flex gap-2 items-center">
+					{/* Keyboard shortcuts hint */}
+					<div className="hidden md:flex items-center gap-1 text-[10px] text-muted-foreground mr-2">
+						<kbd className="px-1.5 py-0.5 bg-muted rounded text-[9px] font-mono">↑↓</kbd>
+						<span>navigate</span>
+						<kbd className="px-1.5 py-0.5 bg-muted rounded text-[9px] font-mono ml-2">Enter</kbd>
+						<span>select</span>
+						<kbd className="px-1.5 py-0.5 bg-muted rounded text-[9px] font-mono ml-2">/</kbd>
+						<span>search</span>
+					</div>
+					
 					<div className="text-[11px] font-semibold px-3 py-1 rounded bg-muted text-muted-foreground flex items-center gap-1.5">
 						<span className="text-sm">📦</span>{" "}
-						{tasks.filter((t) => t.status === "inbox").length}
+						{filteredTasks.filter((t) => t.status === "inbox").length}
 					</div>
 					<div className="text-[11px] font-semibold px-3 py-1 rounded bg-[#f0f0f0] text-[#999]">
-						{tasks.filter((t) => t.status !== "done" && t.status !== "archived").length} active
+						{totalFiltered} active
 					</div>
 					<button
 						onClick={() => setShowArchived(!showArchived)}
@@ -238,36 +449,81 @@ const MissionQueue: React.FC<MissionQueueProps> = ({ selectedTaskId, onSelectTas
 				</div>
 			</div>
 
+			{/* Search and Filter Bar */}
+			<SearchFilterBar
+				searchQuery={searchQuery}
+				onSearchChange={setSearchQuery}
+				selectedTags={selectedTags}
+				onTagsChange={setSelectedTags}
+				selectedAssignees={selectedAssignees}
+				onAssigneesChange={setSelectedAssignees}
+				selectedPriorities={selectedPriorities}
+				onPrioritiesChange={setSelectedPriorities}
+				availableTags={availableTags}
+				availableAgents={agents.map(a => ({ _id: a._id, name: a.name, avatar: a.avatar }))}
+			/>
+
 			<DndContext
 				sensors={sensors}
 				onDragStart={handleDragStart}
 				onDragEnd={handleDragEnd}
 			>
-				<div className={`flex-1 grid gap-px bg-border overflow-x-auto ${showArchived ? "grid-cols-6" : "grid-cols-5"}`}>
-					{displayColumns.map((col) => (
-						<KanbanColumn
-							key={col.id}
-							column={col}
-							taskCount={tasks.filter((t) => t.status === col.id).length}
-						>
-							{tasks
-								.filter((t) => t.status === col.id)
-								.map((task) => (
-									<TaskCard
-										key={task._id}
-										task={task as Task}
-										isSelected={selectedTaskId === task._id}
-										onClick={() => onSelectTask(task._id)}
-										getAgentName={getAgentName}
-										formatRelativeTime={formatRelativeTime}
-										columnId={col.id}
-										currentUserAgentId={currentUserAgent?._id}
-										onArchive={handleArchive}
-										onPlay={handlePlay}
-									/>
-								))}
-						</KanbanColumn>
-					))}
+				<div 
+					className={`flex-1 grid gap-px bg-border overflow-x-auto ${showArchived ? "grid-cols-6" : "grid-cols-5"}`}
+					role="region"
+					aria-label="Task board"
+				>
+					{displayColumns.map((col) => {
+						const columnTasks = getColumnTasks(col.id);
+						return (
+							<KanbanColumn
+								key={col.id}
+								column={col}
+								taskCount={columnTasks.length}
+							>
+								{columnTasks.length === 0 ? (
+									<div className="flex flex-col items-center justify-center py-8 text-center">
+										<div className="text-3xl mb-2">📥</div>
+										<div className="text-xs text-muted-foreground">No tasks</div>
+										{(searchQuery || selectedTags.length > 0 || selectedAssignees.length > 0 || selectedPriorities.length > 0) && (
+											<div className="text-[10px] text-muted-foreground mt-1">
+												Try adjusting filters
+											</div>
+										)}
+									</div>
+								) : (
+									columnTasks.map((task) => {
+										const flatIndex = flattenedTasks.findIndex(ft => ft.task._id === task._id);
+										const isFocused = focusedTaskIndex === flatIndex;
+										
+										return (
+											<TaskCard
+												key={task._id}
+												ref={(el) => registerTaskRef(task._id, el)}
+												task={task as Task}
+												isSelected={selectedTaskId === task._id}
+												isFocused={isFocused}
+												onClick={() => onSelectTask(task._id)}
+												getAgentName={getAgentName}
+												formatRelativeTime={formatRelativeTime}
+												columnId={col.id}
+												currentUserAgentId={currentUserAgent?._id}
+												onArchive={handleArchive}
+												onPlay={handlePlay}
+												tabIndex={isFocused ? 0 : -1}
+												onKeyDown={(e) => {
+													if (e.key === "Enter" || e.key === " ") {
+														e.preventDefault();
+														onSelectTask(task._id);
+													}
+												}}
+											/>
+										);
+									})
+								)}
+							</KanbanColumn>
+						);
+					})}
 				</div>
 
 				<DragOverlay>

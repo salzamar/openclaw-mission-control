@@ -90,7 +90,17 @@ export const receiveAgentEvent = mutation({
 					.first()
 			: null;
 
-		const agent = namedAgent || systemAgent;
+		// For end/error actions without agentId, use task's existing assignee
+		let agent = namedAgent || systemAgent;
+		if (!args.agentId && task && (args.action === "end" || args.action === "error")) {
+			const taskAssignee = task.assigneeIds?.[0];
+			if (taskAssignee) {
+				const assignedAgent = await ctx.db.get(taskAssignee);
+				if (assignedAgent) {
+					agent = assignedAgent;
+				}
+			}
+		}
 		const now = Date.now();
 
 		if (args.action === "start") {

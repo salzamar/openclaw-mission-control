@@ -6,6 +6,7 @@ export default defineSchema({
 	...authTables,
 	agents: defineTable({
 		name: v.string(),
+		email: v.optional(v.string()),
 		role: v.string(),
 		status: v.union(
 			v.literal("idle"),
@@ -33,6 +34,14 @@ export default defineSchema({
 			v.literal("done"),
 			v.literal("archived"),
 		),
+		priority: v.optional(
+			v.union(
+				v.literal("critical"),
+				v.literal("high"),
+				v.literal("normal"),
+				v.literal("low"),
+			)
+		),
 		assigneeIds: v.array(v.id("agents")),
 		tags: v.array(v.string()),
 		borderColor: v.optional(v.string()),
@@ -40,9 +49,12 @@ export default defineSchema({
 		openclawRunId: v.optional(v.string()),
 		startedAt: v.optional(v.number()),
 		usedCodingTools: v.optional(v.boolean()),
+		lastMessageTime: v.optional(v.number()),
 		workspaceId: v.optional(v.string()),
 		tenantId: v.optional(v.string()),
-	}),
+	})
+		.index("by_status", ["status"])
+		.index("by_status_priority", ["status", "priority"]),
 	messages: defineTable({
 		taskId: v.id("tasks"),
 		fromAgentId: v.id("agents"),
@@ -50,7 +62,8 @@ export default defineSchema({
 		attachments: v.array(v.id("documents")),
 		workspaceId: v.optional(v.string()),
 		tenantId: v.optional(v.string()),
-	}),
+	})
+		.index("by_task", ["taskId"]),
 	activities: defineTable({
 		type: v.string(),
 		agentId: v.id("agents"),
@@ -58,7 +71,10 @@ export default defineSchema({
 		targetId: v.optional(v.id("tasks")),
 		workspaceId: v.optional(v.string()),
 		tenantId: v.optional(v.string()),
-	}),
+	})
+		.index("by_agent", ["agentId"])
+		.index("by_target", ["targetId"])
+		.index("by_type", ["type"]),
 	documents: defineTable({
 		title: v.string(),
 		content: v.string(),
@@ -69,7 +85,8 @@ export default defineSchema({
 		messageId: v.optional(v.id("messages")),
 		workspaceId: v.optional(v.string()),
 		tenantId: v.optional(v.string()),
-	}),
+	})
+		.index("by_task", ["taskId"]),
 	notifications: defineTable({
 		mentionedAgentId: v.id("agents"),
 		content: v.string(),
@@ -77,6 +94,15 @@ export default defineSchema({
 		workspaceId: v.optional(v.string()),
 		tenantId: v.optional(v.string()),
 	}),
+	// Thread subscriptions - auto-notify on task activity
+	subscriptions: defineTable({
+		agentId: v.id("agents"),
+		taskId: v.id("tasks"),
+		subscribedAt: v.number(),
+	})
+		.index("by_agent", ["agentId"])
+		.index("by_task", ["taskId"])
+		.index("by_agent_task", ["agentId", "taskId"]),
 	apiTokens: defineTable({
 		tokenHash: v.string(),
 		tokenPrefix: v.string(),

@@ -21,6 +21,7 @@ export const updateStatus = mutation({
 export const createAgent = mutation({
   args: {
     name: v.string(),
+    email: v.optional(v.string()),
     role: v.string(),
     level: v.union(v.literal("LEAD"), v.literal("INT"), v.literal("SPC")),
     avatar: v.string(),
@@ -32,6 +33,7 @@ export const createAgent = mutation({
   handler: async (ctx, args) => {
     return await ctx.db.insert("agents", {
       name: args.name,
+      email: args.email,
       role: args.role,
       level: args.level,
       avatar: args.avatar,
@@ -47,6 +49,7 @@ export const updateAgent = mutation({
   args: {
     id: v.id("agents"),
     name: v.optional(v.string()),
+    email: v.optional(v.string()),
     role: v.optional(v.string()),
     level: v.optional(v.union(v.literal("LEAD"), v.literal("INT"), v.literal("SPC"))),
     avatar: v.optional(v.string()),

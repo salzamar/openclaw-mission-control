@@ -29,6 +29,13 @@ const statusLabels: Record<string, string> = {
   archived: "ARCHIVED",
 };
 
+const priorityConfig: Record<string, { icon: string; label: string; className: string }> = {
+  critical: { icon: "🔴", label: "Critical", className: "bg-red-100 text-red-700 border-red-200" },
+  high: { icon: "🟡", label: "High", className: "bg-yellow-50 text-yellow-700 border-yellow-200" },
+  normal: { icon: "🟢", label: "Normal", className: "bg-green-50 text-green-700 border-green-200" },
+  low: { icon: "🔵", label: "Low", className: "bg-blue-50 text-blue-600 border-blue-200" },
+};
+
 const TaskDetailPanel: React.FC<TaskDetailPanelProps> = ({ taskId, onClose, onPreviewDocument }) => {
   const tasks = useQuery(api.queries.listTasks);
   const agents = useQuery(api.queries.listAgents);
@@ -45,7 +52,7 @@ const TaskDetailPanel: React.FC<TaskDetailPanelProps> = ({ taskId, onClose, onPr
   const linkRun = useMutation(api.tasks.linkRun);
 
   const task = tasks?.find((t) => t._id === taskId);
-  const currentUserAgent = agents?.find(a => a.name === "Manish");
+  const currentUserAgent = agents?.find(a => a.name === "Sami");
   
   const [description, setDescription] = useState("");
   const [isEditingDesc, setIsEditingDesc] = useState(false);
@@ -326,19 +333,73 @@ const TaskDetailPanel: React.FC<TaskDetailPanelProps> = ({ taskId, onClose, onPr
           </div>
         </div>
 
-        {/* Status */}
-        <div className="space-y-1">
-          <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Status</label>
-          <select
-            value={task.status}
-            onChange={handleStatusChange}
-            disabled={!currentUserAgent}
-            className="w-full p-1.5 text-sm border border-border rounded bg-secondary text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--accent-blue)] disabled:opacity-50"
-          >
-            {Object.entries(statusLabels).map(([key, label]) => (
-              <option key={key} value={key}>{label}</option>
-            ))}
-          </select>
+        {/* Status & Priority Row */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Status */}
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Status</label>
+            <select
+              value={task.status}
+              onChange={handleStatusChange}
+              disabled={!currentUserAgent}
+              className="w-full p-1.5 text-sm border border-border rounded bg-secondary text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--accent-blue)] disabled:opacity-50"
+            >
+              {Object.entries(statusLabels).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Priority */}
+          <div className="space-y-1">
+            <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Priority</label>
+            <select
+              value={task.priority || "normal"}
+              onChange={(e) => {
+                if (currentUserAgent) {
+                  updateTask({ 
+                    taskId: task._id, 
+                    priority: e.target.value as any, 
+                    agentId: currentUserAgent._id 
+                  });
+                }
+              }}
+              disabled={!currentUserAgent}
+              className="w-full p-1.5 text-sm border border-border rounded bg-secondary text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--accent-blue)] disabled:opacity-50"
+            >
+              {Object.entries(priorityConfig).map(([key, { icon, label }]) => (
+                <option key={key} value={key}>{icon} {label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Priority Visual Indicator */}
+        <div className="flex items-center gap-2">
+          {Object.entries(priorityConfig).map(([key, { icon, label, className }]) => (
+            <button
+              key={key}
+              onClick={() => {
+                if (currentUserAgent) {
+                  updateTask({ 
+                    taskId: task._id, 
+                    priority: key as any, 
+                    agentId: currentUserAgent._id 
+                  });
+                }
+              }}
+              disabled={!currentUserAgent}
+              className={`flex-1 flex flex-col items-center gap-0.5 p-2 rounded-lg border transition-all disabled:opacity-50 ${
+                (task.priority || "normal") === key
+                  ? `${className} ring-2 ring-offset-1 ring-[var(--accent-blue)]`
+                  : "bg-muted/30 border-transparent hover:bg-muted"
+              }`}
+              title={label}
+            >
+              <span className="text-base">{icon}</span>
+              <span className="text-[9px] font-medium text-muted-foreground">{label}</span>
+            </button>
+          ))}
         </div>
 
         {/* Description */}

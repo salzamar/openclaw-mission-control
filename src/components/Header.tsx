@@ -15,6 +15,9 @@ const Header: React.FC<HeaderProps> = ({ onOpenAgents, onOpenLiveFeed }) => {
 	const agents = useQuery(api.queries.listAgents);
 	const tasks = useQuery(api.queries.listTasks);
 
+	// Get current user (Sami)
+	const currentUser = agents?.find(a => a.name === "Sami");
+
 	// Calculate counts
 	const activeAgentsCount = agents ? agents.filter(a => a.status === "active").length : 0;
 	const tasksInQueueCount = tasks ? tasks.filter(t => t.status !== "done").length : 0;
@@ -62,9 +65,12 @@ const Header: React.FC<HeaderProps> = ({ onOpenAgents, onOpenLiveFeed }) => {
 						MISSION CONTROL
 					</h1>
 				</div>
-				<div className="hidden sm:block text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full font-medium">
-					SiteName
-				</div>
+				{currentUser && (
+					<div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full font-medium">
+						<span>{currentUser.avatar}</span>
+						<span>{currentUser.email || currentUser.name}</span>
+					</div>
+				)}
 			</div>
 
 			<div className="hidden md:flex items-center gap-10">
