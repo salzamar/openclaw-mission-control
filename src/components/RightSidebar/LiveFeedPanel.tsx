@@ -66,7 +66,7 @@ const LiveFeedPanel: React.FC = () => {
           >
             All Agents
           </div>
-          {agents.slice(0, 8).map((a) => (
+          {(agents ?? []).slice(0, 8).map((a) => (
             <div
               key={a._id}
               onClick={() => setSelectedAgentId(a._id)}
@@ -83,7 +83,7 @@ const LiveFeedPanel: React.FC = () => {
       </div>
 
       <div className="flex flex-col gap-3">
-        {activities.map((item) => (
+        {(activities ?? []).map((item) => (
           <div
             key={item._id}
             className="flex gap-3 p-3 bg-secondary border border-border rounded-lg"
