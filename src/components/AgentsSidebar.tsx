@@ -91,7 +91,7 @@ const AgentsSidebar: React.FC<AgentsSidebarProps> = ({
 			)}
 
 			<div className="flex-1 overflow-y-auto py-3">
-				{agents.map((agent) => (
+				{(agents ?? []).map((agent) => (
 					<div
 						key={agent._id}
 						className="relative flex items-center gap-3 px-6 py-3 cursor-pointer hover:bg-muted transition-colors group"

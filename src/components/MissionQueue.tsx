@@ -460,7 +460,7 @@ const MissionQueue: React.FC<MissionQueueProps> = ({ selectedTaskId, onSelectTas
 				selectedPriorities={selectedPriorities}
 				onPrioritiesChange={setSelectedPriorities}
 				availableTags={availableTags}
-				availableAgents={agents.map(a => ({ _id: a._id, name: a.name, avatar: a.avatar }))}
+				availableAgents={(agents ?? []).map(a => ({ _id: a._id, name: a.name, avatar: a.avatar }))}
 			/>
 
 			<DndContext

@@ -115,7 +115,7 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
           >
             All Agents
           </div>
-          {agents.slice(0, 8).map((a) => (
+          {(agents ?? []).slice(0, 8).map((a) => (
             <div
               key={a._id}
               onClick={() => setSelectedAgentId(a._id)}
@@ -137,7 +137,7 @@ const DocumentsPanel: React.FC<DocumentsPanelProps> = ({
             No documents found
           </div>
         ) : (
-          documents.map((doc) => (
+          (documents ?? []).map((doc) => (
             <div
               key={doc._id}
               onClick={() => handleDocumentClick(doc._id)}
