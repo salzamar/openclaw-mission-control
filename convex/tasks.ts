@@ -1,5 +1,83 @@
 import { v } from "convex/values";
-import { mutation } from "./_generated/server";
+import { mutation, internalMutation } from "./_generated/server";
+
+// Internal mutation for HTTP endpoint - finds task by taskId in title
+export const updateStatusByExternalId = internalMutation({
+  args: {
+    taskId: v.string(), // e.g. "SAAS-SPEC-001"
+    status: v.union(
+      v.literal("INBOX"),
+      v.literal("ASSIGNED"),
+      v.literal("IN_PROGRESS"),
+      v.literal("DONE"),
+      // Also support lowercase for compatibility
+      v.literal("inbox"),
+      v.literal("assigned"),
+      v.literal("in_progress"),
+      v.literal("review"),
+      v.literal("done"),
+      v.literal("archived")
+    ),
+    assignee: v.optional(v.string()), // agent name like "analyst"
+  },
+  handler: async (ctx, args) => {
+    // Find task by taskId in title
+    const tasks = await ctx.db.query("tasks").collect();
+    const task = tasks.find(t => t.title.includes(args.taskId));
+    
+    if (!task) {
+      return { success: false, error: `Task not found: ${args.taskId}` };
+    }
+
+    // Normalize status to lowercase
+    const statusMap: Record<string, string> = {
+      "INBOX": "inbox",
+      "ASSIGNED": "assigned", 
+      "IN_PROGRESS": "in_progress",
+      "DONE": "done",
+    };
+    const normalizedStatus = statusMap[args.status] || args.status;
+
+    // Build update object
+    const updates: any = { 
+      status: normalizedStatus as any 
+    };
+
+    // If assignee provided, find agent by name
+    if (args.assignee) {
+      const agents = await ctx.db.query("agents").collect();
+      const agent = agents.find(a => 
+        a.name.toLowerCase() === args.assignee!.toLowerCase() ||
+        a.role.toLowerCase() === args.assignee!.toLowerCase()
+      );
+      if (agent) {
+        updates.assigneeIds = [agent._id];
+      }
+    }
+
+    await ctx.db.patch(task._id, updates);
+
+    // Log activity (find a system agent or use first agent)
+    const agents = await ctx.db.query("agents").collect();
+    const systemAgent = agents.find(a => a.name.toLowerCase().includes("theeb")) || agents[0];
+    
+    if (systemAgent) {
+      await ctx.db.insert("activities", {
+        type: "status_update",
+        agentId: systemAgent._id,
+        message: `[API] Updated "${task.title}" to ${normalizedStatus}`,
+        targetId: task._id,
+      });
+    }
+
+    return { 
+      success: true, 
+      taskId: args.taskId,
+      internalId: task._id,
+      status: normalizedStatus 
+    };
+  },
+});
 
 export const updateStatus = mutation({
   args: {
