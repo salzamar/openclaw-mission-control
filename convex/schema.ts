@@ -52,9 +52,13 @@ export default defineSchema({
 		lastMessageTime: v.optional(v.number()),
 		workspaceId: v.optional(v.string()),
 		tenantId: v.optional(v.string()),
+		projectId: v.optional(v.string()),
+		objectiveId: v.optional(v.string()),
 	})
 		.index("by_status", ["status"])
-		.index("by_status_priority", ["status", "priority"]),
+		.index("by_status_priority", ["status", "priority"])
+		.index("by_projectId", ["projectId"])
+		.index("by_objectiveId", ["objectiveId"]),
 	messages: defineTable({
 		taskId: v.id("tasks"),
 		fromAgentId: v.id("agents"),
@@ -126,4 +130,48 @@ export default defineSchema({
 		windowStartMs: v.number(),
 		count: v.number(),
 	}).index("by_tenant", ["tenantId"]),
+
+	// Objectives - synced from OBJECTIVES.md
+	objectives: defineTable({
+		objectiveId: v.string(),  // e.g., "OBJ-001"
+		title: v.string(),
+		description: v.string(),
+		status: v.union(v.literal("active"), v.literal("complete"), v.literal("backlog")),
+		progress: v.number(),  // 0-100
+		priority: v.union(v.literal("P0"), v.literal("P1"), v.literal("P2")),
+		targetDate: v.optional(v.string()),
+		completedDate: v.optional(v.string()),
+		blockers: v.optional(v.string()),
+		tenantId: v.optional(v.string()),
+	})
+		.index("by_status", ["status"])
+		.index("by_objectiveId", ["objectiveId"]),
+
+	// Projects - group tasks
+	projects: defineTable({
+		projectId: v.string(),
+		name: v.string(),
+		description: v.optional(v.string()),
+		objectiveId: v.optional(v.string()),  // link to objective
+		status: v.union(v.literal("active"), v.literal("complete"), v.literal("archived")),
+		tenantId: v.optional(v.string()),
+	})
+		.index("by_status", ["status"])
+		.index("by_projectId", ["projectId"]),
+
+	// Planner State - runtime status
+	plannerState: defineTable({
+		status: v.string(),  // running, paused, completed
+		lastRun: v.string(),
+		iterationCount: v.number(),
+		costToday: v.number(),
+		costResetDate: v.string(),
+		currentObjective: v.optional(v.string()),
+		nextTask: v.optional(v.string()),
+		waitingApproval: v.array(v.object({
+			taskId: v.string(),
+			reason: v.string(),
+		})),
+		tenantId: v.optional(v.string()),
+	}),
 });

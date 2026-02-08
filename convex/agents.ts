@@ -1,5 +1,55 @@
 import { v } from "convex/values";
-import { mutation } from "./_generated/server";
+import { mutation, internalMutation } from "./_generated/server";
+
+// Internal mutation for HTTP endpoint - update agent status by name
+export const updateStatusByName = internalMutation({
+  args: {
+    agentName: v.string(),
+    status: v.union(v.literal("idle"), v.literal("active"), v.literal("blocked")),
+    currentTask: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Find agent by name (case-insensitive)
+    const agents = await ctx.db.query("agents").collect();
+    const agent = agents.find(a => 
+      a.name.toLowerCase() === args.agentName.toLowerCase() ||
+      a.role.toLowerCase() === args.agentName.toLowerCase()
+    );
+
+    if (!agent) {
+      return { success: false, error: `Agent not found: ${args.agentName}` };
+    }
+
+    const updates: any = { status: args.status };
+
+    // If currentTask provided, find the task and link it
+    if (args.currentTask) {
+      const tasks = await ctx.db.query("tasks").collect();
+      const task = tasks.find(t => t.title.includes(args.currentTask!));
+      if (task) {
+        updates.currentTaskId = task._id;
+      }
+    } else if (args.status === "idle") {
+      // Clear current task when idle
+      updates.currentTaskId = undefined;
+    }
+
+    await ctx.db.patch(agent._id, updates);
+
+    // Log activity
+    await ctx.db.insert("activities", {
+      type: "agent_status",
+      agentId: agent._id,
+      message: `[API] ${agent.name} status changed to ${args.status}`,
+    });
+
+    return { 
+      success: true, 
+      agentName: agent.name,
+      status: args.status 
+    };
+  },
+});
 
 export const updateStatus = mutation({
   args: {
