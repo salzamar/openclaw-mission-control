@@ -2,13 +2,18 @@ import React, { useEffect, useState } from "react";
 import SignOutButton from "./Signout";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import PlannerWidget from "./PlannerWidget";
+
+export type ViewMode = "tasks" | "agents" | "objectives";
 
 type HeaderProps = {
 	onOpenAgents?: () => void;
 	onOpenLiveFeed?: () => void;
+	currentView?: ViewMode;
+	onViewChange?: (view: ViewMode) => void;
 };
 
-const Header: React.FC<HeaderProps> = ({ onOpenAgents, onOpenLiveFeed }) => {
+const Header: React.FC<HeaderProps> = ({ onOpenAgents, onOpenLiveFeed, currentView = "tasks", onViewChange }) => {
 	const [time, setTime] = useState(new Date());
 	
 	// Fetch data for dynamic counts
@@ -73,27 +78,77 @@ const Header: React.FC<HeaderProps> = ({ onOpenAgents, onOpenLiveFeed }) => {
 				)}
 			</div>
 
-			<div className="hidden md:flex items-center gap-10">
+			{/* View Navigation */}
+			<div className="hidden md:flex items-center gap-1 bg-muted rounded-lg p-1">
+				<button
+					onClick={() => onViewChange?.("tasks")}
+					className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+						currentView === "tasks"
+							? "bg-white text-foreground shadow-sm"
+							: "text-muted-foreground hover:text-foreground"
+					}`}
+				>
+					📋 Tasks
+				</button>
+				<button
+					onClick={() => onViewChange?.("agents")}
+					className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+						currentView === "agents"
+							? "bg-white text-foreground shadow-sm"
+							: "text-muted-foreground hover:text-foreground"
+					}`}
+				>
+					👥 Agents
+				</button>
+				<button
+					onClick={() => onViewChange?.("objectives")}
+					className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+						currentView === "objectives"
+							? "bg-white text-foreground shadow-sm"
+							: "text-muted-foreground hover:text-foreground"
+					}`}
+				>
+					🎯 Objectives
+				</button>
+			</div>
+
+			{/* Stats */}
+			<div className="hidden lg:flex items-center gap-6">
 				<div className="flex flex-col items-center">
-					<div className="text-2xl font-bold text-foreground">
+					<div className="text-xl font-bold text-foreground">
 						{agents ? activeAgentsCount : "-"}
 					</div>
 					<div className="text-[10px] font-semibold text-muted-foreground tracking-tighter">
-						AGENTS ACTIVE
+						AGENTS
 					</div>
 				</div>
-				<div className="w-px h-8 bg-border" />
+				<div className="w-px h-6 bg-border" />
 				<div className="flex flex-col items-center">
-					<div className="text-2xl font-bold text-foreground">
+					<div className="text-xl font-bold text-foreground">
 						{tasks ? tasksInQueueCount : "-"}
 					</div>
 					<div className="text-[10px] font-semibold text-muted-foreground tracking-tighter">
-						TASKS IN QUEUE
+						TASKS
 					</div>
 				</div>
 			</div>
 
+			{/* Planner Widget */}
+			<div className="hidden xl:block">
+				<PlannerWidget variant="header" />
+			</div>
+
 			<div className="flex items-center gap-2 md:gap-6">
+				{/* Mobile view selector */}
+				<select
+					value={currentView}
+					onChange={(e) => onViewChange?.(e.target.value as ViewMode)}
+					className="md:hidden px-2 py-1.5 bg-muted text-foreground text-sm font-medium rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-[var(--accent-orange)]"
+				>
+					<option value="tasks">📋 Tasks</option>
+					<option value="agents">👥 Agents</option>
+					<option value="objectives">🎯 Objectives</option>
+				</select>
 				<button
 					type="button"
 					className="md:hidden inline-flex h-9 w-9 items-center justify-center rounded-lg bg-muted hover:bg-accent transition-colors"

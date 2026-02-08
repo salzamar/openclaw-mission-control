@@ -3,7 +3,7 @@
 import { Authenticated, Unauthenticated } from "convex/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Id } from "../convex/_generated/dataModel";
-import Header from "./components/Header";
+import Header, { ViewMode } from "./components/Header";
 import AgentsSidebar from "./components/AgentsSidebar";
 import MissionQueue from "./components/MissionQueue";
 import RightSidebar from "./components/RightSidebar";
@@ -13,10 +13,13 @@ import TaskDetailPanel from "./components/TaskDetailPanel";
 import AddTaskModal from "./components/AddTaskModal";
 import AddAgentModal from "./components/AddAgentModal";
 import AgentDetailTray from "./components/AgentDetailTray";
+import AgentWorkloadView from "./components/AgentWorkloadView";
+import ObjectivesView from "./components/ObjectivesView";
 
 export default function App() {
 	const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
 	const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
+	const [currentView, setCurrentView] = useState<ViewMode>("tasks");
 
 	const closeSidebars = useCallback(() => {
 		setIsLeftSidebarOpen(false);
@@ -98,6 +101,8 @@ export default function App() {
 							setIsRightSidebarOpen(true);
 							setIsLeftSidebarOpen(false);
 						}}
+						currentView={currentView}
+						onViewChange={setCurrentView}
 					/>
 
 					{isAnySidebarOpen && (
@@ -108,20 +113,51 @@ export default function App() {
 						/>
 					)}
 
-					<AgentsSidebar
-						isOpen={isLeftSidebarOpen}
-						onClose={() => setIsLeftSidebarOpen(false)}
-						onAddTask={(preselectedAgentId) => {
-							setAddTaskPreselectedAgentId(preselectedAgentId);
-							setShowAddTaskModal(true);
-						}}
-						onAddAgent={() => setShowAddAgentModal(true)}
-						onSelectAgent={(agentId) => setSelectedAgentId(agentId as Id<"agents">)}
-					/>
-					<MissionQueue
-						selectedTaskId={selectedTaskId}
-						onSelectTask={setSelectedTaskId}
-					/>
+					{/* Left sidebar - show agents sidebar on tasks view, compact on other views */}
+					{currentView === "tasks" ? (
+						<AgentsSidebar
+							isOpen={isLeftSidebarOpen}
+							onClose={() => setIsLeftSidebarOpen(false)}
+							onAddTask={(preselectedAgentId) => {
+								setAddTaskPreselectedAgentId(preselectedAgentId);
+								setShowAddTaskModal(true);
+							}}
+							onAddAgent={() => setShowAddAgentModal(true)}
+							onSelectAgent={(agentId) => setSelectedAgentId(agentId as Id<"agents">)}
+						/>
+					) : (
+						<aside className="[grid-area:left-sidebar] bg-white border-r border-border flex-col overflow-hidden hidden md:flex">
+							<div className="px-4 py-3 border-b border-border">
+								<div className="text-[11px] font-bold tracking-widest text-muted-foreground">
+									QUICK ACCESS
+								</div>
+							</div>
+							<div className="p-4 space-y-4">
+								<AgentWorkloadView compact onSelectAgent={(agentId) => setSelectedAgentId(agentId)} />
+							</div>
+						</aside>
+					)}
+
+					{/* Main content area - switches based on view */}
+					{currentView === "tasks" && (
+						<MissionQueue
+							selectedTaskId={selectedTaskId}
+							onSelectTask={setSelectedTaskId}
+						/>
+					)}
+					{currentView === "agents" && (
+						<main className="[grid-area:main] bg-[#0a0a0a] flex flex-col overflow-hidden">
+							<AgentWorkloadView
+								onSelectAgent={(agentId) => setSelectedAgentId(agentId)}
+							/>
+						</main>
+					)}
+					{currentView === "objectives" && (
+						<main className="[grid-area:main] bg-[#0a0a0a] flex flex-col overflow-hidden">
+							<ObjectivesView />
+						</main>
+					)}
+
 					<RightSidebar
 						isOpen={isRightSidebarOpen}
 						onClose={() => setIsRightSidebarOpen(false)}
