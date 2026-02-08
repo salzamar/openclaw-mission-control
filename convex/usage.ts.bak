@@ -1,0 +1,202 @@
+import { v } from "convex/values";
+import { mutation, query, internalMutation } from "./_generated/server";
+
+// Add a usage record
+export const addUsage = mutation({
+  args: {
+    model: v.string(),
+    agent: v.string(),
+    tokens_in: v.number(),
+    tokens_out: v.number(),
+    cost: v.number(),
+    taskId: v.optional(v.id("tasks")),
+    sessionKey: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const timestamp = Date.now();
+    const usageId = await ctx.db.insert("usage", {
+      timestamp,
+      model: args.model,
+      agent: args.agent,
+      tokens_in: args.tokens_in,
+      tokens_out: args.tokens_out,
+      cost: args.cost,
+      taskId: args.taskId,
+      sessionKey: args.sessionKey,
+    });
+    return usageId;
+  },
+});
+
+// Get usage statistics for a time range
+export const getUsageStats = query({
+  args: {
+    startTime: v.optional(v.number()),
+    endTime: v.optional(v.number()),
+    agent: v.optional(v.string()),
+    model: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const startTime = args.startTime || 0;
+    const endTime = args.endTime || Date.now();
+    
+    // Query with time range filter
+    const usage = await ctx.db.query("usage")
+      .withIndex("by_timestamp", (q) => 
+        q.gte("timestamp", startTime).lte("timestamp", endTime)
+      )
+      .collect();
+    
+    // Calculate totals
+    const totalCost = usage.reduce((sum, u) => sum + u.cost, 0);
+    const totalTokensIn = usage.reduce((sum, u) => sum + u.tokens_in, 0);
+    const totalTokensOut = usage.reduce((sum, u) => sum + u.tokens_out, 0);
+    const totalTokens = totalTokensIn + totalTokensOut;
+    
+    // Group by model
+    const byModel = usage.reduce((acc, u) => {
+      if (!acc[u.model]) {
+        acc[u.model] = { cost: 0, tokens_in: 0, tokens_out: 0, count: 0 };
+      }
+      acc[u.model].cost += u.cost;
+      acc[u.model].tokens_in += u.tokens_in;
+      acc[u.model].tokens_out += u.tokens_out;
+      acc[u.model].count += 1;
+      return acc;
+    }, {} as Record<string, { cost: number; tokens_in: number; tokens_out: number; count: number }>);
+    
+    // Group by agent
+    const byAgent = usage.reduce((acc, u) => {
+      if (!acc[u.agent]) {
+        acc[u.agent] = { cost: 0, tokens_in: 0, tokens_out: 0, count: 0 };
+      }
+      acc[u.agent].cost += u.cost;
+      acc[u.agent].tokens_in += u.tokens_in;
+      acc[u.agent].tokens_out += u.tokens_out;
+      acc[u.agent].count += 1;
+      return acc;
+    }, {} as Record<string, { cost: number; tokens_in: number; tokens_out: number; count: number }>);
+    
+    // Get daily trend (last 30 days)
+    const dailyTrend = [];
+    const days = 30;
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date();
+      date.setHours(0, 0, 0, 0);
+      date.setDate(date.getDate() - i);
+      const dayStart = date.getTime();
+      date.setHours(23, 59, 59, 999);
+      const dayEnd = date.getTime();
+      
+      const dayUsage = usage.filter(u => u.timestamp >= dayStart && u.timestamp <= dayEnd);
+      const dayCost = dayUsage.reduce((sum, u) => sum + u.cost, 0);
+      const dayTokens = dayUsage.reduce((sum, u) => sum + u.tokens_in + u.tokens_out, 0);
+      
+      dailyTrend.push({
+        date: dayStart,
+        cost: dayCost,
+        tokens: dayTokens,
+      });
+    }
+    
+    // Get recent sessions (last 10)
+    const recentSessions = usage
+      .sort((a, b) => b.timestamp - a.timestamp)
+      .slice(0, 10)
+      .map(u => ({
+        timestamp: u.timestamp,
+        model: u.model,
+        agent: u.agent,
+        tokens_in: u.tokens_in,
+        tokens_out: u.tokens_out,
+        cost: u.cost,
+        taskId: u.taskId,
+      }));
+    
+    return {
+      totalCost,
+      totalTokens,
+      totalTokensIn,
+      totalTokensOut,
+      byModel: Object.entries(byModel).map(([model, data]) => ({ model, ...data })),
+      byAgent: Object.entries(byAgent).map(([agent, data]) => ({ agent, ...data })),
+      dailyTrend,
+      recentSessions,
+      recordCount: usage.length,
+    };
+  },
+});
+
+// Get usage by time period (for charts)
+export const getUsageByPeriod = query({
+  args: {
+    period: v.union(v.literal("hour"), v.literal("day"), v.literal("week")),
+    startTime: v.number(),
+    endTime: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const usage = await ctx.db
+      .query("usage")
+      .withIndex("by_timestamp", (q) => 
+        q.gte("timestamp", args.startTime).lte("timestamp", args.endTime)
+      )
+      .collect();
+    
+    // Group by period
+    const grouped = new Map<string, { cost: number; tokens: number; count: number }>();
+    
+    usage.forEach(u => {
+      const date = new Date(u.timestamp);
+      let key: string;
+      
+      if (args.period === "hour") {
+        key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}`;
+      } else if (args.period === "day") {
+        key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+      } else {
+        const week = Math.floor(date.getDate() / 7);
+        key = `${date.getFullYear()}-${date.getMonth()}-week${week}`;
+      }
+      
+      if (!grouped.has(key)) {
+        grouped.set(key, { cost: 0, tokens: 0, count: 0 });
+      }
+      
+      const data = grouped.get(key)!;
+      data.cost += u.cost;
+      data.tokens += u.tokens_in + u.tokens_out;
+      data.count += 1;
+    });
+    
+    return Array.from(grouped.entries()).map(([period, data]) => ({
+      period,
+      ...data,
+    }));
+  },
+});
+
+// Internal function to track model usage (called from other functions)
+export const trackUsage = internalMutation({
+  args: {
+    model: v.string(),
+    agent: v.string(),
+    tokens_in: v.number(),
+    tokens_out: v.number(),
+    cost: v.number(),
+    taskId: v.optional(v.id("tasks")),
+    sessionKey: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const timestamp = Date.now();
+    await ctx.db.insert("usage", {
+      timestamp,
+      model: args.model,
+      agent: args.agent,
+      tokens_in: args.tokens_in,
+      tokens_out: args.tokens_out,
+      cost: args.cost,
+      taskId: args.taskId,
+      sessionKey: args.sessionKey,
+    });
+  },
+});

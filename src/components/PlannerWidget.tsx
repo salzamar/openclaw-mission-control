@@ -60,7 +60,7 @@ const PlannerWidget: React.FC<PlannerWidgetProps> = ({
   // Header variant - compact inline widget
   if (variant === "header") {
     return (
-      <div className="relative flex items-center gap-3 px-3 py-2 bg-[#1a1a1a] rounded-lg border border-[#333]">
+      <div className="relative flex items-center gap-3 px-3 py-2 bg-card rounded-lg border border-border">
         {/* Status indicator */}
         <div
           className={`flex items-center gap-2 ${statusInfo.pulse ? "animate-pulse" : ""}`}
@@ -78,7 +78,7 @@ const PlannerWidget: React.FC<PlannerWidgetProps> = ({
         <div className="w-px h-4 bg-[#333]" />
 
         {/* Iteration count */}
-        <div className="text-xs text-gray-400">
+        <div className="text-xs text-muted-foreground">
           <span className="text-white font-medium">
             #{plannerState?.iterationCount ?? 0}
           </span>
@@ -87,7 +87,7 @@ const PlannerWidget: React.FC<PlannerWidgetProps> = ({
         <div className="w-px h-4 bg-[#333]" />
 
         {/* Cost today */}
-        <div className="text-xs text-gray-400">
+        <div className="text-xs text-muted-foreground">
           <span className="text-white font-medium">
             ${(plannerState?.costToday ?? 0).toFixed(2)}
           </span>
@@ -113,7 +113,7 @@ const PlannerWidget: React.FC<PlannerWidgetProps> = ({
             const newStatus = plannerState?.status === "running" ? "paused" : "running";
             updateStatus({ status: newStatus });
           }}
-          className="ml-1 p-1 hover:bg-[#333] rounded transition-colors text-gray-400 hover:text-white"
+          className="ml-1 p-1 hover:bg-[#333] rounded transition-colors text-muted-foreground hover:text-white"
           title={plannerState?.status === "running" ? "Pause planner" : "Resume planner"}
         >
           {plannerState?.status === "running" ? "⏸" : "▶"}
@@ -121,12 +121,12 @@ const PlannerWidget: React.FC<PlannerWidgetProps> = ({
 
         {/* Approvals dropdown */}
         {showApprovals && pendingCount > 0 && (
-          <div className="absolute top-full right-0 mt-2 w-80 bg-[#1a1a1a] border border-[#333] rounded-lg shadow-xl z-50">
-            <div className="p-3 border-b border-[#333] flex items-center justify-between">
+          <div className="absolute top-full right-0 mt-2 w-80 bg-card border border-border rounded-lg shadow-xl z-50">
+            <div className="p-3 border-b border-border flex items-center justify-between">
               <span className="text-sm font-semibold text-white">Pending Approvals</span>
               <button
                 onClick={() => setShowApprovals(false)}
-                className="text-gray-400 hover:text-white"
+                className="text-muted-foreground hover:text-white"
               >
                 ✕
               </button>
@@ -135,10 +135,10 @@ const PlannerWidget: React.FC<PlannerWidgetProps> = ({
               {plannerState?.waitingApproval?.map((approval, i) => (
                 <div
                   key={i}
-                  className="p-3 border-b border-[#333] last:border-b-0 hover:bg-[#222]"
+                  className="p-3 border-b border-border last:border-b-0 hover:bg-muted"
                 >
                   <div className="text-sm text-white mb-1">{approval.taskId}</div>
-                  <div className="text-xs text-gray-400 mb-2">{approval.reason}</div>
+                  <div className="text-xs text-muted-foreground mb-2">{approval.reason}</div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => removeApproval({ taskId: approval.taskId })}
@@ -165,23 +165,23 @@ const PlannerWidget: React.FC<PlannerWidgetProps> = ({
   // Card variant - full dashboard card
   if (variant === "card") {
     return (
-      <div className="bg-[#1a1a1a] rounded-xl border border-[#333] overflow-hidden">
+      <div className="bg-card rounded-xl border border-border overflow-hidden">
         {/* Header */}
-        <div className="px-4 py-3 border-b border-[#333] flex items-center justify-between">
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-[var(--accent-orange)]">◇</span>
-            <span className="text-xs font-bold tracking-wider text-gray-400">
+            <span className="text-xs font-bold tracking-wider text-muted-foreground">
               PLANNER STATUS
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <button className="text-gray-400 hover:text-white" title="Settings">
+            <button className="text-muted-foreground hover:text-white" title="Settings">
               ⚙️
             </button>
             {onExpand && (
               <button
                 onClick={onExpand}
-                className="text-gray-400 hover:text-white"
+                className="text-muted-foreground hover:text-white"
                 title="Expand"
               >
                 ↗️
@@ -229,13 +229,13 @@ const PlannerWidget: React.FC<PlannerWidgetProps> = ({
 
         {/* Current objective */}
         {currentObjective && (
-          <div className="px-4 py-3 border-t border-[#333]">
-            <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
+          <div className="px-4 py-3 border-t border-border">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
               🎯 Current Objective
             </div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-white font-medium">{currentObjective.title}</span>
-              <span className="text-sm text-gray-400">
+              <span className="text-sm text-muted-foreground">
                 {currentObjective.progress}%
               </span>
             </div>
@@ -249,15 +249,15 @@ const PlannerWidget: React.FC<PlannerWidgetProps> = ({
         )}
 
         {/* Cost & Approvals */}
-        <div className="grid grid-cols-2 gap-4 p-4 border-t border-[#333]">
+        <div className="grid grid-cols-2 gap-4 p-4 border-t border-border">
           <div>
-            <div className="text-xs text-gray-400 mb-1">💰 Cost Today</div>
+            <div className="text-xs text-muted-foreground mb-1">💰 Cost Today</div>
             <div className="text-xl font-bold text-white">
               ${(plannerState?.costToday ?? 0).toFixed(2)}
             </div>
           </div>
           <div>
-            <div className="text-xs text-gray-400 mb-1">🔔 Pending Approvals</div>
+            <div className="text-xs text-muted-foreground mb-1">🔔 Pending Approvals</div>
             <div className="flex items-center gap-2">
               <span className="text-xl font-bold text-white">{pendingCount}</span>
               {pendingCount > 0 && (
@@ -277,13 +277,13 @@ const PlannerWidget: React.FC<PlannerWidgetProps> = ({
 
   // Sidebar variant - compact vertical
   return (
-    <div className="bg-[#1a1a1a] rounded-lg border border-[#333] overflow-hidden">
-      <div className="px-3 py-2 border-b border-[#333] flex items-center justify-between">
-        <span className="text-xs font-bold tracking-wider text-gray-400">PLANNER</span>
-        <button className="text-gray-400 hover:text-white text-sm">⚙️</button>
+    <div className="bg-card rounded-lg border border-border overflow-hidden">
+      <div className="px-3 py-2 border-b border-border flex items-center justify-between">
+        <span className="text-xs font-bold tracking-wider text-muted-foreground">PLANNER</span>
+        <button className="text-muted-foreground hover:text-white text-sm">⚙️</button>
       </div>
 
-      <div className="p-3 border-b border-[#333]">
+      <div className="p-3 border-b border-border">
         <div
           className={`flex items-center gap-2 ${statusInfo.pulse ? "animate-pulse" : ""}`}
           style={{ color: statusInfo.color }}
@@ -300,9 +300,9 @@ const PlannerWidget: React.FC<PlannerWidgetProps> = ({
       </div>
 
       {currentObjective && (
-        <div className="p-3 border-b border-[#333]">
+        <div className="p-3 border-b border-border">
           <div className="flex items-center justify-between text-sm mb-1">
-            <span className="text-gray-400">🎯 {currentObjective.title}</span>
+            <span className="text-muted-foreground">🎯 {currentObjective.title}</span>
             <span className="text-white">{currentObjective.progress}%</span>
           </div>
           <div className="h-1.5 bg-[#333] rounded-full overflow-hidden">
@@ -314,9 +314,9 @@ const PlannerWidget: React.FC<PlannerWidgetProps> = ({
         </div>
       )}
 
-      <div className="p-3 border-b border-[#333] text-sm">
-        <div className="text-gray-400">💰 ${(plannerState?.costToday ?? 0).toFixed(2)} today</div>
-        <div className="text-gray-400">📅 Last run: {formatLastRun(plannerState?.lastRun)}</div>
+      <div className="p-3 border-b border-border text-sm">
+        <div className="text-muted-foreground">💰 ${(plannerState?.costToday ?? 0).toFixed(2)} today</div>
+        <div className="text-muted-foreground">📅 Last run: {formatLastRun(plannerState?.lastRun)}</div>
       </div>
 
       {pendingCount > 0 && (

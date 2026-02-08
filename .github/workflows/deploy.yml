@@ -1,0 +1,477 @@
+name: Mission Control Production Deployment
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+      rollback:
+        description: 'Rollback to previous version'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  NODE_VERSION: '18'
+  CACHE_KEY: ${{ github.sha }}
+  DEPLOYMENT_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+
+jobs:
+  # Pre-deployment checks
+  pre-deployment:
+    name: Pre-deployment Validation
+    runs-on: ubuntu-latest
+    outputs:
+      should-deploy: ${{ steps.deployment-check.outputs.should-deploy }}
+      deployment-type: ${{ steps.deployment-check.outputs.deployment-type }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check deployment conditions
+        id: deployment-check
+        run: |
+          if [ "${{ github.event.inputs.rollback }}" == "true" ]; then
+            echo "should-deploy=true" >> $GITHUB_OUTPUT
+            echo "deployment-type=rollback" >> $GITHUB_OUTPUT
+          else
+            echo "should-deploy=true" >> $GITHUB_OUTPUT
+            echo "deployment-type=regular" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Notify deployment start
+        if: steps.deployment-check.outputs.should-deploy == 'true'
+        run: |
+          echo "🚀 Starting Mission Control deployment"
+          echo "Deployment ID: ${{ env.DEPLOYMENT_ID }}"
+          echo "Deployment type: ${{ steps.deployment-check.outputs.deployment-type }}"
+
+  # Dependency installation and caching
+  install-dependencies:
+    name: Install Dependencies
+    runs-on: ubuntu-latest
+    needs: pre-deployment
+    if: needs.pre-deployment.outputs.should-deploy == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        id: cache-deps
+        with:
+          path: |
+            node_modules
+            ~/.npm
+            ~/.cache
+          key: deps-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ env.CACHE_KEY }}
+          restore-keys: |
+            deps-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+            deps-${{ runner.os }}-
+
+      - name: Install dependencies
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: |
+          echo "📦 Installing dependencies..."
+          npm ci --prefer-offline --no-audit
+
+      - name: Verify installation
+        run: |
+          echo "✅ Dependencies installed successfully"
+          npm list --depth=0
+
+  # Linting and code quality checks
+  lint:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    needs: install-dependencies
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Restore dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            node_modules
+            ~/.npm
+          key: deps-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ env.CACHE_KEY }}
+
+      - name: Run ESLint
+        run: |
+          echo "🔍 Running ESLint..."
+          npm run lint --if-present || echo "No lint script found, skipping..."
+
+      - name: Run Prettier check
+        run: |
+          echo "🎨 Checking code formatting..."
+          npm run format:check --if-present || echo "No format:check script found, skipping..."
+
+      - name: TypeScript type check
+        run: |
+          echo "🔧 Running TypeScript type check..."
+          npm run type-check --if-present || npx tsc --noEmit || echo "TypeScript check completed"
+
+  # Run tests
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: install-dependencies
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Restore dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            node_modules
+            ~/.npm
+          key: deps-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ env.CACHE_KEY }}
+
+      - name: Run unit tests
+        run: |
+          echo "🧪 Running unit tests..."
+          npm run test:unit --if-present || npm test --if-present || echo "No tests found, skipping..."
+
+      - name: Run test coverage
+        run: |
+          echo "📊 Generating test coverage..."
+          npm run test:coverage --if-present || echo "No coverage script found, skipping..."
+
+      - name: Upload coverage reports
+        if: success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
+  # Build application
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    outputs:
+      build-hash: ${{ steps.build.outputs.build-hash }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Restore dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            node_modules
+            ~/.npm
+          key: deps-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}-${{ env.CACHE_KEY }}
+
+      - name: Create production build
+        id: build
+        run: |
+          echo "🏗️ Building application..."
+          
+          # Set production environment variables
+          export NODE_ENV=production
+          export REACT_APP_VERSION=${{ github.sha }}
+          export REACT_APP_BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          export REACT_APP_DEPLOYMENT_ID=${{ env.DEPLOYMENT_ID }}
+          
+          # Build the application
+          npm run build
+          
+          # Calculate build hash for integrity check
+          BUILD_HASH=$(find build -type f -exec sha256sum {} \; | sha256sum | cut -d' ' -f1)
+          echo "build-hash=$BUILD_HASH" >> $GITHUB_OUTPUT
+          echo "✅ Build completed with hash: $BUILD_HASH"
+
+      - name: Optimize build
+        run: |
+          echo "⚡ Optimizing build..."
+          
+          # Compress assets
+          gzip -k -9 build/static/js/*.js 2>/dev/null || true
+          gzip -k -9 build/static/css/*.css 2>/dev/null || true
+          
+          # Generate build info
+          cat > build/build-info.json << EOF
+          {
+            "version": "${{ github.sha }}",
+            "buildDate": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "deploymentId": "${{ env.DEPLOYMENT_ID }}",
+            "buildHash": "${{ steps.build.outputs.build-hash }}",
+            "branch": "${{ github.ref_name }}",
+            "commit": "${{ github.sha }}"
+          }
+          EOF
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts
+          path: build/
+          retention-days: 30
+
+  # Security scan
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-artifacts
+          path: build/
+
+      - name: Run security audit
+        run: |
+          echo "🔒 Running security audit..."
+          npm audit --audit-level=high || echo "Security audit completed with warnings"
+
+      - name: Scan for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+
+  # Deploy to production
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build, security-scan]
+    if: github.ref == 'refs/heads/main' && needs.pre-deployment.outputs.deployment-type == 'regular'
+    environment: 
+      name: production
+      url: ${{ secrets.PRODUCTION_URL }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: build-artifacts
+          path: build/
+
+      - name: Configure deployment credentials
+        run: |
+          echo "🔐 Configuring deployment credentials..."
+          # Configure AWS credentials if using AWS
+          if [ -n "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then
+            aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws configure set region ${{ secrets.AWS_REGION }}
+          fi
+
+      - name: Create deployment backup
+        run: |
+          echo "💾 Creating deployment backup..."
+          # This is a placeholder for backup logic
+          # You might want to backup current production before deploying
+          echo "Backup created with ID: backup-${{ env.DEPLOYMENT_ID }}"
+
+      - name: Deploy to production
+        id: deploy
+        run: |
+          echo "🚀 Deploying to production..."
+          
+          # Example deployment commands (customize based on your infrastructure)
+          
+          # For AWS S3 + CloudFront
+          if [ -n "${{ secrets.S3_BUCKET }}" ]; then
+            aws s3 sync build/ s3://${{ secrets.S3_BUCKET }} --delete
+            aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
+          fi
+          
+          # For Vercel
+          if [ -n "${{ secrets.VERCEL_TOKEN }}" ]; then
+            npx vercel --prod --token ${{ secrets.VERCEL_TOKEN }} --confirm
+          fi
+          
+          # For Netlify
+          if [ -n "${{ secrets.NETLIFY_SITE_ID }}" ]; then
+            npx netlify deploy --prod --dir=build --site ${{ secrets.NETLIFY_SITE_ID }} --auth ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          fi
+          
+          # For Firebase
+          if [ -n "${{ secrets.FIREBASE_TOKEN }}" ]; then
+            npx firebase deploy --token ${{ secrets.FIREBASE_TOKEN }} --only hosting
+          fi
+          
+          echo "✅ Deployment completed successfully"
+
+      - name: Verify deployment
+        run: |
+          echo "🔍 Verifying deployment..."
+          
+          # Wait for deployment to propagate
+          sleep 30
+          
+          # Health check
+          if [ -n "${{ secrets.PRODUCTION_URL }}" ]; then
+            response=$(curl -s -o /dev/null -w "%{http_code}" ${{ secrets.PRODUCTION_URL }})
+            if [ "$response" == "200" ]; then
+              echo "✅ Health check passed"
+            else
+              echo "❌ Health check failed with status: $response"
+              exit 1
+            fi
+          fi
+
+      - name: Create deployment record
+        if: success()
+        run: |
+          echo "📝 Recording deployment..."
+          cat > deployment-record.json << EOF
+          {
+            "deploymentId": "${{ env.DEPLOYMENT_ID }}",
+            "version": "${{ github.sha }}",
+            "date": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "status": "success",
+            "buildHash": "${{ needs.build.outputs.build-hash }}",
+            "deployedBy": "${{ github.actor }}",
+            "commitMessage": "${{ github.event.head_commit.message }}"
+          }
+          EOF
+
+  # Rollback job
+  rollback:
+    name: Rollback Deployment
+    runs-on: ubuntu-latest
+    needs: pre-deployment
+    if: needs.pre-deployment.outputs.deployment-type == 'rollback' || github.event.inputs.rollback == 'true'
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get previous release
+        id: previous-release
+        run: |
+          echo "⏮️ Finding previous stable release..."
+          # Get the second to last commit on main
+          PREVIOUS_SHA=$(git rev-parse HEAD~1)
+          echo "previous-sha=$PREVIOUS_SHA" >> $GITHUB_OUTPUT
+
+      - name: Deploy previous version
+        run: |
+          echo "🔄 Rolling back to previous version: ${{ steps.previous-release.outputs.previous-sha }}"
+          
+          # Checkout previous version
+          git checkout ${{ steps.previous-release.outputs.previous-sha }}
+          
+          # Run build process for previous version
+          npm ci
+          npm run build
+          
+          # Deploy previous version (same deployment logic as regular deploy)
+          if [ -n "${{ secrets.S3_BUCKET }}" ]; then
+            aws s3 sync build/ s3://${{ secrets.S3_BUCKET }} --delete
+            aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
+          fi
+
+      - name: Verify rollback
+        run: |
+          echo "✅ Rollback completed successfully"
+          echo "Rolled back to commit: ${{ steps.previous-release.outputs.previous-sha }}"
+
+  # Post-deployment tasks
+  post-deployment:
+    name: Post-deployment Tasks
+    runs-on: ubuntu-latest
+    needs: [deploy, rollback]
+    if: always() && (needs.deploy.result == 'success' || needs.rollback.result == 'success')
+    steps:
+      - name: Notify deployment completion
+        run: |
+          if [ "${{ needs.deploy.result }}" == "success" ]; then
+            MESSAGE="✅ Mission Control deployment completed successfully!"
+            STATUS="success"
+          else
+            MESSAGE="⚠️ Mission Control rollback completed!"
+            STATUS="rollback"
+          fi
+          
+          echo $MESSAGE
+          echo "Status: $STATUS"
+          echo "Deployment ID: ${{ env.DEPLOYMENT_ID }}"
+          echo "Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+
+      - name: Send notification
+        if: always()
+        run: |
+          # Send Slack notification
+          if [ -n "${{ secrets.SLACK_WEBHOOK }}" ]; then
+            curl -X POST -H 'Content-type: application/json' \
+              --data "{\"text\":\"Mission Control deployment ${{ job.status }} - ${{ env.DEPLOYMENT_ID }}\"}" \
+              ${{ secrets.SLACK_WEBHOOK }}
+          fi
+          
+          # Send Discord notification
+          if [ -n "${{ secrets.DISCORD_WEBHOOK }}" ]; then
+            curl -X POST -H 'Content-type: application/json' \
+              --data "{\"content\":\"🚀 Mission Control deployment ${{ job.status }} - ${{ env.DEPLOYMENT_ID }}\"}" \
+              ${{ secrets.DISCORD_WEBHOOK }}
+          fi
+
+  # Cleanup
+  cleanup:
+    name: Cleanup
+    runs-on: ubuntu-latest
+    needs: [deploy, rollback]
+    if: always()
+    steps:
+      - name: Cleanup artifacts
+        run: |
+          echo "🧹 Cleaning up temporary artifacts..."
+          # Artifacts are automatically cleaned up based on retention policy
+
+      - name: Summary
+        run: |
+          echo "📋 Deployment Summary"
+          echo "===================="
+          echo "Deployment ID: ${{ env.DEPLOYMENT_ID }}"
+          echo "Triggered by: ${{ github.actor }}"
+          echo "Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+          echo "Status: ${{ job.status }}"

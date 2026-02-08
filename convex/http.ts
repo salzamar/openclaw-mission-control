@@ -105,7 +105,7 @@ http.route({
 			});
 
 			return new Response(
-				JSON.stringify({ success: true, ...result }),
+				JSON.stringify({ ...result, success: true }),
 				{ status: 200, headers: { "Content-Type": "application/json" } }
 			);
 		} catch (error) {
@@ -143,7 +143,7 @@ http.route({
 			});
 
 			return new Response(
-				JSON.stringify({ success: true, ...result }),
+				JSON.stringify({ ...result, success: true }),
 				{ status: 200, headers: { "Content-Type": "application/json" } }
 			);
 		} catch (error) {
@@ -193,7 +193,7 @@ http.route({
 			});
 
 			return new Response(
-				JSON.stringify({ success: true, ...result }),
+				JSON.stringify({ ...result, success: true }),
 				{ status: 200, headers: { "Content-Type": "application/json" } }
 			);
 		} catch (error) {
@@ -264,6 +264,134 @@ http.route({
 			);
 		}
 	}),
+});
+
+
+
+// Create task with auto-assignment endpoint
+http.route({
+	path: "/tasks/create",
+	method: "POST",
+	handler: httpAction(async (ctx, request) => {
+		try {
+			const body = await request.json();
+			
+			if (!body.title) {
+				return new Response(
+					JSON.stringify({ 
+						success: false, 
+						error: "Missing required field: title" 
+					}),
+					{ status: 400, headers: { "Content-Type": "application/json" } }
+				);
+			}
+
+			const result = await ctx.runMutation(internal.tasks.createTaskWithAgent, {
+				title: body.title,
+				description: body.description || "",
+				status: body.status,
+				tags: body.tags,
+				priority: body.priority,
+				assignee: body.assignee,
+				projectId: body.projectId,
+				objectiveId: body.objectiveId,
+			});
+
+			return new Response(
+				JSON.stringify(result),
+				{ status: 200, headers: { "Content-Type": "application/json" } }
+			);
+		} catch (error) {
+			return new Response(
+				JSON.stringify({ 
+					success: false, 
+					error: error instanceof Error ? error.message : "Unknown error" 
+				}),
+				{ status: 500, headers: { "Content-Type": "application/json" } }
+			);
+		}
+	}),
+});
+
+// Fix unassigned tasks endpoint (maintenance)
+http.route({
+	path: "/tasks/fix-unassigned",
+	method: "POST",
+	handler: httpAction(async (ctx, request) => {
+		try {
+			const result = await ctx.runMutation(internal.tasks.fixUnassignedTasks, {});
+
+			return new Response(
+				JSON.stringify({ success: true, ...result }),
+				{ status: 200, headers: { "Content-Type": "application/json" } }
+			);
+		} catch (error) {
+			return new Response(
+				JSON.stringify({ 
+					success: false, 
+					error: error instanceof Error ? error.message : "Unknown error" 
+				}),
+				{ status: 500, headers: { "Content-Type": "application/json" } }
+			);
+		}
+	}),
+});
+
+// Upload document endpoint
+http.route({
+  path: "/documents/upload",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const body = await request.json();
+      const { title, content, type, path, taskId, agentName } = body;
+
+      if (!title || !content || !type) {
+        return new Response(JSON.stringify({ error: "Missing required fields: title, content, type" }), { 
+          status: 400,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+
+      // Find agent by name (default to first agent if not specified)
+      const agents = await ctx.runQuery(api.queries.listAgents);
+      let agent = agents.find((a: any) => a.name?.toLowerCase() === agentName?.toLowerCase());
+      if (!agent) agent = agents[0];
+      if (!agent) {
+        return new Response(JSON.stringify({ error: "No agents found" }), { 
+          status: 404,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+
+      // Find task by title if taskId is a string like "SAAS-SPEC-001"
+      let resolvedTaskId = undefined;
+      if (taskId) {
+        const tasks = await ctx.runQuery(api.queries.listTasks, {});
+        const task = tasks.find((t: any) => t.title?.includes(taskId));
+        if (task) resolvedTaskId = task._id;
+      }
+
+      const docId = await ctx.runMutation(api.documents.create, {
+        title,
+        content,
+        type,
+        path,
+        taskId: resolvedTaskId,
+        agentId: agent._id,
+      });
+
+      return new Response(JSON.stringify({ success: true, documentId: docId, taskId: resolvedTaskId }), { 
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
+    } catch (error: any) {
+      return new Response(JSON.stringify({ error: error.message }), { 
+        status: 500,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+  }),
 });
 
 export default http;

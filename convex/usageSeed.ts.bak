@@ -1,0 +1,94 @@
+import { internalMutation } from "./_generated/server";
+import { v } from "convex/values";
+
+// Clear all usage data
+export const clearUsageData = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const allUsage = await ctx.db.query("usage").collect();
+    for (const record of allUsage) {
+      await ctx.db.delete(record._id);
+    }
+    return { deleted: allUsage.length };
+  },
+});
+
+// Seed sample usage data for testing with explicit base time
+export const seedUsageData = internalMutation({
+  args: {
+    baseTime: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const models = ["Claude Opus 4.5", "Kimi K2", "Gemini Pro", "GPT-4", "Claude Sonnet 4.5"];
+    const agents = ["Theeb", "Analyst", "Architect", "Coder", "Tester", "UI/UX Expert", "Marketing", "Sales Expert"];
+    
+    // Use provided baseTime or fall back to server time
+    const now = args.baseTime || Date.now();
+    const thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
+    
+    // Create 500 random usage records
+    for (let i = 0; i < 500; i++) {
+      const randomTime = thirtyDaysAgo + Math.random() * (now - thirtyDaysAgo);
+      const model = models[Math.floor(Math.random() * models.length)];
+      const agent = agents[Math.floor(Math.random() * agents.length)];
+      
+      // Random token counts and costs based on model
+      let tokens_in, tokens_out, cost;
+      
+      if (model.includes("Opus")) {
+        tokens_in = Math.floor(Math.random() * 50000) + 10000;
+        tokens_out = Math.floor(Math.random() * 30000) + 5000;
+        cost = (tokens_in + tokens_out) * 0.00006;
+      } else if (model.includes("Kimi")) {
+        tokens_in = Math.floor(Math.random() * 40000) + 8000;
+        tokens_out = Math.floor(Math.random() * 25000) + 4000;
+        cost = (tokens_in + tokens_out) * 0.00004;
+      } else if (model.includes("Gemini")) {
+        tokens_in = Math.floor(Math.random() * 35000) + 7000;
+        tokens_out = Math.floor(Math.random() * 20000) + 3000;
+        cost = (tokens_in + tokens_out) * 0.00003;
+      } else if (model.includes("GPT-4")) {
+        tokens_in = Math.floor(Math.random() * 45000) + 9000;
+        tokens_out = Math.floor(Math.random() * 28000) + 4500;
+        cost = (tokens_in + tokens_out) * 0.00005;
+      } else {
+        tokens_in = Math.floor(Math.random() * 25000) + 5000;
+        tokens_out = Math.floor(Math.random() * 15000) + 2500;
+        cost = (tokens_in + tokens_out) * 0.00002;
+      }
+      
+      await ctx.db.insert("usage", {
+        timestamp: randomTime,
+        model,
+        agent,
+        tokens_in,
+        tokens_out,
+        cost: parseFloat(cost.toFixed(4)),
+      });
+    }
+    
+    return { success: true, message: "Seeded 500 usage records", baseTime: now };
+  },
+});
+
+// Bulk insert usage records (for sync from OpenClaw)
+export const bulkInsertUsage = internalMutation({
+  args: {
+    records: v.array(v.object({
+      timestamp: v.number(),
+      model: v.string(),
+      agent: v.string(),
+      tokens_in: v.number(),
+      tokens_out: v.number(),
+      cost: v.number(),
+    })),
+  },
+  handler: async (ctx, args) => {
+    let inserted = 0;
+    for (const record of args.records) {
+      await ctx.db.insert("usage", record);
+      inserted++;
+    }
+    return { inserted };
+  },
+});

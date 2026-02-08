@@ -85,7 +85,7 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
       case "P2":
         return { bg: "bg-blue-900/40", border: "border-blue-500", text: "text-blue-400" };
       default:
-        return { bg: "bg-gray-800", border: "border-gray-600", text: "text-gray-400" };
+        return { bg: "bg-muted", border: "border-border", text: "text-muted-foreground" };
     }
   };
 
@@ -148,7 +148,7 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
 
     return (
       <div
-        className={`bg-[#1a1a1a] rounded-lg border-l-4 ${priorityColors.border} border border-[#333] overflow-hidden cursor-pointer transition-all hover:bg-[#222] hover:shadow-lg ${
+        className={`bg-card rounded-lg border-l-4 ${priorityColors.border} border border-border overflow-hidden cursor-pointer transition-all hover:bg-muted hover:shadow-lg ${
           isSelected ? "ring-2 ring-[var(--accent-orange)]" : ""
         }`}
         onClick={() => {
@@ -173,7 +173,7 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
           {/* Progress bar */}
           <div className="mb-2">
             <div className="flex items-center justify-between text-xs mb-1">
-              <span className="text-gray-400">Progress</span>
+              <span className="text-muted-foreground">Progress</span>
               <span className="text-white font-medium">{objective.progress}%</span>
             </div>
             <div className="h-1.5 bg-[#333] rounded-full overflow-hidden">
@@ -190,11 +190,11 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
 
           {/* Meta info */}
           <div className="flex items-center justify-between text-xs">
-            <span className="text-gray-400">
+            <span className="text-muted-foreground">
               📅 {formatTargetDate(objective.targetDate, objective.completedDate)}
             </span>
             {taskStats.total > 0 && (
-              <span className="text-gray-400">
+              <span className="text-muted-foreground">
                 {taskStats.completed}/{taskStats.total} tasks
               </span>
             )}
@@ -223,13 +223,13 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
   }) => (
     <div className="flex-1 min-w-[300px] max-w-[400px] flex flex-col">
       {/* Column header */}
-      <div className="px-3 py-2 bg-[#1a1a1a] rounded-t-lg border border-[#333] border-b-0">
+      <div className="px-3 py-2 bg-card rounded-t-lg border border-border border-b-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold tracking-wider text-gray-400 uppercase">
+            <span className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
               {title}
             </span>
-            <span className="text-xs bg-[#333] text-gray-400 px-1.5 py-0.5 rounded">
+            <span className="text-xs bg-[#333] text-muted-foreground px-1.5 py-0.5 rounded">
               {objectives.length}
             </span>
           </div>
@@ -237,7 +237,7 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
       </div>
 
       {/* Column content */}
-      <div className="flex-1 overflow-y-auto bg-[#0f0f0f] border border-[#333] border-t-0 rounded-b-lg p-2 space-y-2 min-h-[400px]">
+      <div className="flex-1 overflow-y-auto bg-secondary border border-border border-t-0 rounded-b-lg p-2 space-y-2 min-h-[400px]">
         {objectives.length > 0 ? (
           objectives.map((objective) => (
             <ObjectiveCard key={objective._id} objective={objective} />
@@ -256,10 +256,10 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
   if (objectives === undefined) {
     return (
       <div className="flex-1 overflow-auto p-6 animate-pulse">
-        <div className="h-8 bg-[#1a1a1a] rounded w-48 mb-6" />
+        <div className="h-8 bg-card rounded w-48 mb-6" />
         <div className="flex gap-4">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="flex-1 min-w-[300px] h-96 bg-[#1a1a1a] rounded-xl" />
+            <div key={i} className="flex-1 min-w-[300px] h-96 bg-card rounded-xl" />
           ))}
         </div>
       </div>
@@ -272,7 +272,7 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
   return (
     <div className="flex-1 overflow-hidden flex flex-col">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-[#333] bg-[#0a0a0a]">
+      <div className="px-6 py-4 border-b border-border bg-background">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <span className="text-[var(--accent-orange)]">◇</span>
@@ -282,21 +282,21 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
             <button className="px-3 py-1.5 text-sm bg-[var(--accent-orange)] text-white rounded-lg hover:opacity-90 transition-opacity font-medium">
               + New Objective
             </button>
-            <div className="flex items-center gap-1 bg-[#1a1a1a] rounded-lg p-1">
+            <div className="flex items-center gap-1 bg-card rounded-lg p-1">
               <button
                 onClick={() => setViewMode("kanban")}
-                className={`px-2 py-1 text-xs rounded ${viewMode === "kanban" ? "bg-[#333] text-white" : "text-gray-400"}`}
+                className={`px-2 py-1 text-xs rounded ${viewMode === "kanban" ? "bg-[#333] text-white" : "text-muted-foreground"}`}
               >
                 ⊞ Grid
               </button>
               <button
                 onClick={() => setViewMode("list")}
-                className={`px-2 py-1 text-xs rounded ${viewMode === "list" ? "bg-[#333] text-white" : "text-gray-400"}`}
+                className={`px-2 py-1 text-xs rounded ${viewMode === "list" ? "bg-[#333] text-white" : "text-muted-foreground"}`}
               >
                 ≡ List
               </button>
             </div>
-            <button className="text-gray-400 hover:text-white">⚙️</button>
+            <button className="text-muted-foreground hover:text-white">⚙️</button>
           </div>
         </div>
 
@@ -308,14 +308,14 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
               placeholder="Search objectives..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-3 py-1.5 pl-8 bg-[#1a1a1a] border border-[#333] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[var(--accent-orange)]"
+              className="w-full px-3 py-1.5 pl-8 bg-card border border-border rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[var(--accent-orange)]"
             />
             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500">🔍</span>
           </div>
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
-            className="px-3 py-1.5 bg-[#1a1a1a] border border-[#333] rounded-lg text-sm text-white focus:outline-none focus:border-[var(--accent-orange)]"
+            className="px-3 py-1.5 bg-card border border-border rounded-lg text-sm text-white focus:outline-none focus:border-[var(--accent-orange)]"
           >
             <option value="all">All Priorities</option>
             <option value="P0">P0 - Critical</option>
@@ -347,7 +347,7 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
       </div>
 
       {/* Footer */}
-      <div className="px-6 py-2 border-t border-[#333] bg-[#0a0a0a] text-xs text-gray-500">
+      <div className="px-6 py-2 border-t border-border bg-background text-xs text-gray-500">
         ↑↓/jk Navigate • Enter Expand • h/l Switch Column • n New • / Search • ? Help
       </div>
 
@@ -358,11 +358,11 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
           onClick={() => setExpandedObjectiveId(null)}
         >
           <div
-            className="bg-[#1a1a1a] rounded-xl border border-[#333] w-full max-w-2xl max-h-[80vh] overflow-hidden"
+            className="bg-card rounded-xl border border-border w-full max-w-2xl max-h-[80vh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal header */}
-            <div className="px-6 py-4 border-b border-[#333] flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span
                   className={`text-xs font-bold px-2 py-1 rounded ${getPriorityColors(expandedObjective.priority).bg} ${getPriorityColors(expandedObjective.priority).text}`}
@@ -375,7 +375,7 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
               </div>
               <button
                 onClick={() => setExpandedObjectiveId(null)}
-                className="text-gray-400 hover:text-white"
+                className="text-muted-foreground hover:text-white"
               >
                 ✕
               </button>
@@ -386,7 +386,7 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
               {/* Progress */}
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-400">Progress</span>
+                  <span className="text-sm text-muted-foreground">Progress</span>
                   <span className="text-lg font-bold text-white">
                     {expandedObjective.progress}%
                   </span>
@@ -406,13 +406,13 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
               {/* Details */}
               <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
                 <div>
-                  <span className="text-gray-400">📅 Target Date</span>
+                  <span className="text-muted-foreground">📅 Target Date</span>
                   <div className="text-white">
                     {formatTargetDate(expandedObjective.targetDate)}
                   </div>
                 </div>
                 <div>
-                  <span className="text-gray-400">📊 Status</span>
+                  <span className="text-muted-foreground">📊 Status</span>
                   <div className={getStatusIndicator(expandedObjective).color}>
                     {getStatusIndicator(expandedObjective).icon}{" "}
                     {getStatusIndicator(expandedObjective).label}
@@ -422,14 +422,14 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
 
               {/* Description */}
               <div className="mb-6">
-                <h3 className="text-sm font-medium text-gray-400 mb-2">Description</h3>
+                <h3 className="text-sm font-medium text-muted-foreground mb-2">Description</h3>
                 <p className="text-white text-sm">{expandedObjective.description}</p>
               </div>
 
               {/* Linked tasks */}
               {tasks && (
                 <div>
-                  <h3 className="text-sm font-medium text-gray-400 mb-2">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-2">
                     Linked Tasks ({getObjectiveTasks(expandedObjective.objectiveId).total})
                   </h3>
                   <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -438,7 +438,7 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
                       .map((task) => (
                         <div
                           key={task._id}
-                          className="flex items-center gap-2 p-2 bg-[#0f0f0f] rounded"
+                          className="flex items-center gap-2 p-2 bg-secondary rounded"
                         >
                           <span
                             className={`text-xs ${
@@ -446,7 +446,7 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
                                 ? "text-green-400"
                                 : task.status === "review"
                                   ? "text-yellow-400"
-                                  : "text-gray-400"
+                                  : "text-muted-foreground"
                             }`}
                           >
                             {task.status === "done" ? "✓" : task.status === "in_progress" ? "🔄" : "⚙️"}
@@ -466,7 +466,7 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
             </div>
 
             {/* Modal footer */}
-            <div className="px-6 py-4 border-t border-[#333] flex items-center justify-between">
+            <div className="px-6 py-4 border-t border-border flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => moveObjective(expandedObjective.objectiveId, "active")}
@@ -490,7 +490,7 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
                   → Backlog
                 </button>
               </div>
-              <button className="px-3 py-1.5 text-xs text-gray-400 hover:text-white">
+              <button className="px-3 py-1.5 text-xs text-muted-foreground hover:text-white">
                 Edit Objective
               </button>
             </div>
