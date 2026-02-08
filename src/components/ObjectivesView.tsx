@@ -176,7 +176,7 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
               <span className="text-muted-foreground">Progress</span>
               <span className="text-white font-medium">{objective.progress}%</span>
             </div>
-            <div className="h-1.5 bg-[#333] rounded-full overflow-hidden">
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
               <div
                 className={`h-full transition-all duration-500 ${
                   objective.progress >= 75
@@ -229,7 +229,7 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
             <span className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
               {title}
             </span>
-            <span className="text-xs bg-[#333] text-muted-foreground px-1.5 py-0.5 rounded">
+            <span className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded">
               {objectives.length}
             </span>
           </div>
@@ -285,13 +285,13 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
             <div className="flex items-center gap-1 bg-card rounded-lg p-1">
               <button
                 onClick={() => setViewMode("kanban")}
-                className={`px-2 py-1 text-xs rounded ${viewMode === "kanban" ? "bg-[#333] text-white" : "text-muted-foreground"}`}
+                className={`px-2 py-1 text-xs rounded ${viewMode === "kanban" ? "bg-muted text-white" : "text-muted-foreground"}`}
               >
                 ⊞ Grid
               </button>
               <button
                 onClick={() => setViewMode("list")}
-                className={`px-2 py-1 text-xs rounded ${viewMode === "list" ? "bg-[#333] text-white" : "text-muted-foreground"}`}
+                className={`px-2 py-1 text-xs rounded ${viewMode === "list" ? "bg-muted text-white" : "text-muted-foreground"}`}
               >
                 ≡ List
               </button>
@@ -391,7 +391,7 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
                     {expandedObjective.progress}%
                   </span>
                 </div>
-                <div className="h-3 bg-[#333] rounded-full overflow-hidden">
+                <div className="h-3 bg-muted rounded-full overflow-hidden">
                   <div
                     className={`h-full transition-all duration-500 ${
                       expandedObjective.progress >= 75
@@ -471,7 +471,7 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
                 <button
                   onClick={() => moveObjective(expandedObjective.objectiveId, "active")}
                   disabled={expandedObjective.status === "active"}
-                  className="px-3 py-1.5 text-xs bg-[#333] text-white rounded hover:bg-[#444] disabled:opacity-50"
+                  className="px-3 py-1.5 text-xs bg-muted text-white rounded hover:bg-[#444] disabled:opacity-50"
                 >
                   → Active
                 </button>
@@ -485,7 +485,7 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
                 <button
                   onClick={() => moveObjective(expandedObjective.objectiveId, "backlog")}
                   disabled={expandedObjective.status === "backlog"}
-                  className="px-3 py-1.5 text-xs bg-[#333] text-white rounded hover:bg-[#444] disabled:opacity-50"
+                  className="px-3 py-1.5 text-xs bg-muted text-white rounded hover:bg-[#444] disabled:opacity-50"
                 >
                   → Backlog
                 </button>

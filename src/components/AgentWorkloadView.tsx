@@ -197,19 +197,19 @@ const AgentWorkloadView: React.FC<AgentWorkloadViewProps> = ({
             <span className="text-muted-foreground">Active:</span>
             <span className="text-white font-medium">{activeCount}</span>
           </div>
-          <div className="w-px h-4 bg-[#333]" />
+          <div className="w-px h-4 bg-border" />
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-gray-500" />
             <span className="text-muted-foreground">Idle:</span>
             <span className="text-white font-medium">{idleCount}</span>
           </div>
-          <div className="w-px h-4 bg-[#333]" />
+          <div className="w-px h-4 bg-border" />
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-red-500" />
             <span className="text-muted-foreground">Blocked:</span>
             <span className="text-white font-medium">{blockedCount}</span>
           </div>
-          <div className="w-px h-4 bg-[#333]" />
+          <div className="w-px h-4 bg-border" />
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground">✓</span>
             <span className="text-white font-medium">{tasksCompletedToday}</span>

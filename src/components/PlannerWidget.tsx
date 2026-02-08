@@ -75,7 +75,7 @@ const PlannerWidget: React.FC<PlannerWidgetProps> = ({
           </span>
         </div>
 
-        <div className="w-px h-4 bg-[#333]" />
+        <div className="w-px h-4 bg-border" />
 
         {/* Iteration count */}
         <div className="text-xs text-muted-foreground">
@@ -84,7 +84,7 @@ const PlannerWidget: React.FC<PlannerWidgetProps> = ({
           </span>
         </div>
 
-        <div className="w-px h-4 bg-[#333]" />
+        <div className="w-px h-4 bg-border" />
 
         {/* Cost today */}
         <div className="text-xs text-muted-foreground">
@@ -97,10 +97,10 @@ const PlannerWidget: React.FC<PlannerWidgetProps> = ({
         {/* Pending approvals badge */}
         {pendingCount > 0 && (
           <>
-            <div className="w-px h-4 bg-[#333]" />
+            <div className="w-px h-4 bg-border" />
             <button
               onClick={() => setShowApprovals(!showApprovals)}
-              className="flex items-center gap-1.5 px-2 py-1 bg-[#f9731620] rounded text-[var(--accent-orange)] hover:bg-[#f9731640] transition-colors"
+              className="flex items-center gap-1.5 px-2 py-1 bg-[#f9731620] rounded text-[var(--accent-orange)] hover:bg-accent transition-colors"
             >
               <span className="text-xs font-semibold">🔔 {pendingCount}</span>
             </button>
@@ -113,7 +113,7 @@ const PlannerWidget: React.FC<PlannerWidgetProps> = ({
             const newStatus = plannerState?.status === "running" ? "paused" : "running";
             updateStatus({ status: newStatus });
           }}
-          className="ml-1 p-1 hover:bg-[#333] rounded transition-colors text-muted-foreground hover:text-white"
+          className="ml-1 p-1 hover:bg-muted rounded transition-colors text-muted-foreground hover:text-white"
           title={plannerState?.status === "running" ? "Pause planner" : "Resume planner"}
         >
           {plannerState?.status === "running" ? "⏸" : "▶"}
@@ -239,7 +239,7 @@ const PlannerWidget: React.FC<PlannerWidgetProps> = ({
                 {currentObjective.progress}%
               </span>
             </div>
-            <div className="h-2 bg-[#333] rounded-full overflow-hidden">
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-orange-600 to-orange-400 transition-all duration-500"
                 style={{ width: `${currentObjective.progress}%` }}
@@ -305,7 +305,7 @@ const PlannerWidget: React.FC<PlannerWidgetProps> = ({
             <span className="text-muted-foreground">🎯 {currentObjective.title}</span>
             <span className="text-white">{currentObjective.progress}%</span>
           </div>
-          <div className="h-1.5 bg-[#333] rounded-full overflow-hidden">
+          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-orange-600 to-orange-400"
               style={{ width: `${currentObjective.progress}%` }}
