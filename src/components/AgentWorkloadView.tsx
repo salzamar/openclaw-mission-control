@@ -19,6 +19,7 @@ type Task = {
   title: string;
   status: string;
   startedAt?: number;
+  assigneeIds?: Id<"agents">[];
 };
 
 type AgentWorkloadViewProps = {
@@ -60,10 +61,20 @@ const AgentWorkloadView: React.FC<AgentWorkloadViewProps> = ({
     (t) => t.status === "done" && t._creationTime >= today.getTime()
   ).length ?? 0;
 
-  // Get current task for an agent
+  // Get current task for an agent (find active/in-progress task assigned to them)
   const getCurrentTask = (agent: Agent): Task | undefined => {
-    if (!agent.currentTaskId || !tasks) return undefined;
-    return tasks.find((t) => t._id === agent.currentTaskId);
+    if (!tasks) return undefined;
+    // First try currentTaskId if set
+    if (agent.currentTaskId) {
+      const task = tasks.find((t) => t._id === agent.currentTaskId);
+      if (task) return task;
+    }
+    // Otherwise find their in-progress or assigned task
+    return tasks.find(
+      (t) => 
+        t.assigneeIds?.includes(agent._id) && 
+        (t.status === "in_progress" || t.status === "assigned")
+    );
   };
 
   // Get tasks completed today by agent
