@@ -394,4 +394,49 @@ http.route({
   }),
 });
 
+// Pending comments endpoint - tasks where Sami commented and agents haven't replied
+http.route({
+	path: "/tasks/pending-comments",
+	method: "GET",
+	handler: httpAction(async (ctx, request) => {
+		try {
+			const url = new URL(request.url);
+			const agentName = url.searchParams.get("agent");
+			
+			// If agent name provided, find the agent ID
+			let agentId = undefined;
+			if (agentName) {
+				const agents = await ctx.runQuery(api.queries.listAgents);
+				const agent = agents.find((a: any) => 
+					a.name?.toLowerCase() === agentName.toLowerCase()
+				);
+				if (agent) {
+					agentId = agent._id;
+				}
+			}
+			
+			const pendingComments = await ctx.runQuery(api.messages.getPendingComments, {
+				agentId,
+			});
+
+			return new Response(
+				JSON.stringify({ 
+					success: true, 
+					count: pendingComments.length,
+					tasks: pendingComments 
+				}),
+				{ status: 200, headers: { "Content-Type": "application/json" } }
+			);
+		} catch (error) {
+			return new Response(
+				JSON.stringify({ 
+					success: false, 
+					error: error instanceof Error ? error.message : "Unknown error" 
+				}),
+				{ status: 500, headers: { "Content-Type": "application/json" } }
+			);
+		}
+	}),
+});
+
 export default http;

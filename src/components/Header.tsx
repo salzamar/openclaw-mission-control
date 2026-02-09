@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import SignOutButton from "./Signout";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import PlannerWidget from "./PlannerWidget";
 
@@ -15,6 +15,8 @@ type HeaderProps = {
 
 const Header: React.FC<HeaderProps> = ({ onOpenAgents, onOpenLiveFeed, currentView = "tasks", onViewChange }) => {
 	const [time, setTime] = useState(new Date());
+	const [showNotifications, setShowNotifications] = useState(false);
+	const notificationRef = useRef<HTMLDivElement>(null);
 	
 	// Fetch data for dynamic counts
 	const agents = useQuery(api.queries.listAgents);
@@ -22,6 +24,25 @@ const Header: React.FC<HeaderProps> = ({ onOpenAgents, onOpenLiveFeed, currentVi
 
 	// Get current user (Sami)
 	const currentUser = agents?.find(a => a.name === "Sami");
+	
+	// Fetch notifications for current user
+	const notifications = useQuery(
+		api.notifications.listForAgent,
+		currentUser ? { agentId: currentUser._id } : "skip"
+	);
+	const unreadCount = notifications?.filter(n => !n.delivered).length ?? 0;
+	const markAllRead = useMutation(api.notifications.markAllRead);
+	
+	// Close dropdown when clicking outside
+	useEffect(() => {
+		const handleClickOutside = (event: MouseEvent) => {
+			if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+				setShowNotifications(false);
+			}
+		};
+		document.addEventListener("mousedown", handleClickOutside);
+		return () => document.removeEventListener("mousedown", handleClickOutside);
+	}, []);
 
 	// Calculate counts
 	const activeAgentsCount = agents ? agents.filter(a => a.status === "active").length : 0;
@@ -157,6 +178,66 @@ const Header: React.FC<HeaderProps> = ({ onOpenAgents, onOpenLiveFeed, currentVi
 				>
 					<span aria-hidden="true">☰</span>
 				</button>
+				
+				{/* Notification Bell */}
+				<div className="relative" ref={notificationRef}>
+					<button
+						type="button"
+						onClick={() => setShowNotifications(!showNotifications)}
+						className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg bg-muted hover:bg-accent transition-colors"
+						aria-label="Notifications"
+					>
+						<span className="text-lg">🔔</span>
+						{unreadCount > 0 && (
+							<span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+								{unreadCount > 9 ? "9+" : unreadCount}
+							</span>
+						)}
+					</button>
+					
+					{/* Notifications Dropdown */}
+					{showNotifications && (
+						<div className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-auto bg-white border border-border rounded-lg shadow-lg z-50">
+							<div className="flex items-center justify-between px-4 py-3 border-b border-border">
+								<h3 className="font-semibold text-foreground">Notifications</h3>
+								{unreadCount > 0 && currentUser && (
+									<button
+										onClick={() => {
+											markAllRead({ agentId: currentUser._id });
+										}}
+										className="text-xs text-[var(--accent-orange)] hover:underline"
+									>
+										Mark all read
+									</button>
+								)}
+							</div>
+							<div className="divide-y divide-border">
+								{notifications && notifications.length > 0 ? (
+									notifications.slice(0, 10).map((notification) => (
+										<div
+											key={notification._id}
+											className={`px-4 py-3 hover:bg-muted/50 transition-colors ${
+												!notification.delivered ? "bg-orange-50" : ""
+											}`}
+										>
+											<p className="text-sm text-foreground line-clamp-2">
+												{notification.content}
+											</p>
+											<p className="text-[10px] text-muted-foreground mt-1">
+												{new Date(notification._creationTime).toLocaleString()}
+											</p>
+										</div>
+									))
+								) : (
+									<div className="px-4 py-6 text-center text-sm text-muted-foreground">
+										No notifications
+									</div>
+								)}
+							</div>
+						</div>
+					)}
+				</div>
+				
 				<div className="text-right">
 					<div className="text-xl font-semibold text-foreground tabular-nums">
 						{formatTime(time)}

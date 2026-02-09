@@ -117,3 +117,68 @@ export const remove = mutation({
     await ctx.db.delete(args.id);
   },
 });
+
+// List notifications for a specific agent (with unread count)
+export const listForAgent = query({
+  args: {
+    agentId: v.id("agents"),
+    unreadOnly: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    let notifications = await ctx.db
+      .query("notifications")
+      .filter((q) => q.eq(q.field("mentionedAgentId"), args.agentId))
+      .order("desc")
+      .collect();
+    
+    if (args.unreadOnly) {
+      notifications = notifications.filter(n => !n.delivered);
+    }
+    
+    return notifications;
+  },
+});
+
+// Get unread notification count for an agent
+export const getUnreadCount = query({
+  args: {
+    agentId: v.id("agents"),
+  },
+  handler: async (ctx, args) => {
+    const notifications = await ctx.db
+      .query("notifications")
+      .filter((q) => 
+        q.and(
+          q.eq(q.field("mentionedAgentId"), args.agentId),
+          q.eq(q.field("delivered"), false)
+        )
+      )
+      .collect();
+    
+    return notifications.length;
+  },
+});
+
+// Mark all notifications as read for an agent
+export const markAllRead = mutation({
+  args: {
+    agentId: v.id("agents"),
+  },
+  handler: async (ctx, args) => {
+    const notifications = await ctx.db
+      .query("notifications")
+      .filter((q) => 
+        q.and(
+          q.eq(q.field("mentionedAgentId"), args.agentId),
+          q.eq(q.field("delivered"), false)
+        )
+      )
+      .collect();
+    
+    for (const notification of notifications) {
+      await ctx.db.patch(notification._id, { delivered: true });
+    }
+    
+    return { marked: notifications.length };
+  },
+});
