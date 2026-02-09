@@ -11,7 +11,8 @@ export const listAgents = query({
 export const listTasks = query({
 	args: {},
 	handler: async (ctx) => {
-		const tasks = await ctx.db.query("tasks").collect();
+		// Sort by creation time descending (most recent first)
+		const tasks = await ctx.db.query("tasks").order("desc").collect();
 
 		// Enrich tasks with last message time
 		const enrichedTasks = await Promise.all(
