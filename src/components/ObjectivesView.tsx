@@ -116,10 +116,20 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
   // Format target date
   const formatTargetDate = (dateStr?: string, completedDate?: string) => {
     if (completedDate) {
-      return `Complete: ${new Date(completedDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+      const completedDateObj = new Date(completedDate);
+      if (isNaN(completedDateObj.getTime())) {
+        return "Complete";
+      }
+      return `Complete: ${completedDateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
     }
-    if (!dateStr) return "No target";
+    if (!dateStr) return "No target date";
+    
     const date = new Date(dateStr);
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return "No target date";
+    }
+    
     const now = new Date();
     const daysRemaining = Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     
@@ -159,21 +169,21 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
       >
         {/* Header */}
         <div className="p-3">
-          <div className="flex items-start gap-2 mb-2">
+          <div className="flex items-start gap-2 mb-3">
             <span
-              className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${priorityColors.bg} ${priorityColors.text}`}
+              className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${priorityColors.bg} ${priorityColors.text} flex-shrink-0`}
             >
               {objective.priority}
             </span>
-            <span className="text-sm font-medium text-white flex-1 line-clamp-2">
-              {objective.title}
-            </span>
+            <h3 className="text-base font-semibold text-white flex-1 line-clamp-2 leading-tight">
+              {objective.title || "Untitled Objective"}
+            </h3>
           </div>
 
           {/* Progress bar */}
           <div className="mb-2">
             <div className="flex items-center justify-between text-xs mb-1">
-              <span className="text-muted-foreground">Progress</span>
+              <span className="text-muted-foreground">Progress: {objective.progress}%</span>
               <span className="text-white font-medium">{objective.progress}%</span>
             </div>
             <div className="h-1.5 bg-muted rounded-full overflow-hidden">
