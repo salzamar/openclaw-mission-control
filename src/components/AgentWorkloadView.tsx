@@ -153,7 +153,7 @@ const AgentWorkloadView: React.FC<AgentWorkloadViewProps> = ({
                   style={{ backgroundColor: statusInfo.color }}
                 />
                 <span className="text-sm">{agent.avatar}</span>
-                <span className="text-sm font-medium text-white flex-1 truncate">
+                <span className="text-sm font-medium text-foreground flex-1 truncate">
                   {agent.name}
                 </span>
                 <span className="text-xs text-muted-foreground truncate max-w-[100px]">
@@ -179,14 +179,14 @@ const AgentWorkloadView: React.FC<AgentWorkloadViewProps> = ({
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <span className="text-[var(--accent-orange)]">◇</span>
-            <h2 className="text-lg font-semibold text-white tracking-wider">
+            <h2 className="text-lg font-semibold text-foreground tracking-wider">
               AGENT WORKLOAD
             </h2>
           </div>
           <div className="flex items-center gap-4 text-sm">
             <span className="text-green-500">🟢 {activeCount}/{totalAgents} ONLINE</span>
-            <button className="text-muted-foreground hover:text-white">⟳ Refresh</button>
-            <button className="text-muted-foreground hover:text-white">⚙️</button>
+            <button className="text-muted-foreground hover:text-foreground">⟳ Refresh</button>
+            <button className="text-muted-foreground hover:text-foreground">⚙️</button>
           </div>
         </div>
 
@@ -195,24 +195,24 @@ const AgentWorkloadView: React.FC<AgentWorkloadViewProps> = ({
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-green-500" />
             <span className="text-muted-foreground">Active:</span>
-            <span className="text-white font-medium">{activeCount}</span>
+            <span className="text-foreground font-medium">{activeCount}</span>
           </div>
           <div className="w-px h-4 bg-border" />
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-gray-500" />
             <span className="text-muted-foreground">Idle:</span>
-            <span className="text-white font-medium">{idleCount}</span>
+            <span className="text-foreground font-medium">{idleCount}</span>
           </div>
           <div className="w-px h-4 bg-border" />
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-red-500" />
             <span className="text-muted-foreground">Blocked:</span>
-            <span className="text-white font-medium">{blockedCount}</span>
+            <span className="text-foreground font-medium">{blockedCount}</span>
           </div>
           <div className="w-px h-4 bg-border" />
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground">✓</span>
-            <span className="text-white font-medium">{tasksCompletedToday}</span>
+            <span className="text-foreground font-medium">{tasksCompletedToday}</span>
             <span className="text-muted-foreground">tasks today</span>
           </div>
         </div>
@@ -262,7 +262,7 @@ const AgentWorkloadView: React.FC<AgentWorkloadViewProps> = ({
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-white">{agent.name}</span>
+                        <span className="font-semibold text-foreground">{agent.name}</span>
                         <span
                           className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${levelColors.bg} ${levelColors.text} border ${levelColors.border}`}
                         >
@@ -281,18 +281,18 @@ const AgentWorkloadView: React.FC<AgentWorkloadViewProps> = ({
                       🔴 BLOCKED
                     </div>
                   ) : agent.status === "idle" ? (
-                    <div className="text-gray-500 text-sm">
+                    <div className="text-muted-foreground text-sm">
                       ⚪ IDLE
                     </div>
                   ) : currentTask ? (
                     <div>
-                      <div className="text-xs text-gray-500 mb-1">Currently:</div>
-                      <div className="text-sm text-white truncate">
+                      <div className="text-xs text-muted-foreground mb-1">Currently:</div>
+                      <div className="text-sm text-foreground truncate">
                         {currentTask.title}
                       </div>
                     </div>
                   ) : (
-                    <div className="text-gray-500 text-sm">No active task</div>
+                    <div className="text-muted-foreground text-sm">No active task</div>
                   )}
                 </div>
 
@@ -320,7 +320,7 @@ const AgentWorkloadView: React.FC<AgentWorkloadViewProps> = ({
         {agents.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <span className="text-4xl mb-4">⚫</span>
-            <h3 className="text-lg font-medium text-white mb-2">No agents configured</h3>
+            <h3 className="text-lg font-medium text-foreground mb-2">No agents configured</h3>
             <p className="text-muted-foreground text-sm max-w-md">
               Configure agents in Mission Control to see their workload here.
             </p>
@@ -329,7 +329,7 @@ const AgentWorkloadView: React.FC<AgentWorkloadViewProps> = ({
       </div>
 
       {/* Footer help */}
-      <div className="sticky bottom-0 bg-background border-t border-border px-6 py-2 text-xs text-gray-500">
+      <div className="sticky bottom-0 bg-background border-t border-border px-6 py-2 text-xs text-muted-foreground">
         ↑↓/jk Navigate • Enter Details • / Search • ? Help
       </div>
     </div>
