@@ -275,7 +275,7 @@ const AgentWorkloadView: React.FC<AgentWorkloadViewProps> = ({
                 </div>
 
                 {/* Current activity */}
-                <div className="px-4 py-3 border-t border-border bg-[#151515]">
+                <div className="px-4 py-3 border-t border-border bg-muted">
                   {agent.status === "blocked" ? (
                     <div className="text-red-400 font-medium text-sm">
                       🔴 BLOCKED
