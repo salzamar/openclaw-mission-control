@@ -175,7 +175,7 @@ const ObjectivesView: React.FC<ObjectivesViewProps> = ({ onSelectObjective }) =>
             >
               {objective.priority}
             </span>
-            <h3 className="text-base font-semibold text-white flex-1 line-clamp-2 leading-tight">
+            <h3 className="text-base font-semibold text-foreground flex-1 line-clamp-2 leading-tight">
               {objective.title || "Untitled Objective"}
             </h3>
           </div>
