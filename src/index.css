@@ -42,6 +42,7 @@
 	/* Mission Control specific variables */
 	--header-height: 80px;
 	--sidebar-left-width: 280px;
+	--sidebar-left-collapsed-width: 70px;
 	--sidebar-right-width: 320px;
 	--accent-orange: #ff9f43;
 	--accent-blue: #54a0ff;
@@ -186,6 +187,20 @@
 		);
 	height: 100vh;
 	width: 100vw;
+	transition: grid-template-columns 300ms ease;
+}
+
+.app-container.left-sidebar-collapsed {
+	grid-template-columns: var(--sidebar-left-collapsed-width) 1fr var(
+			--sidebar-right-width
+		);
+}
+
+.app-container [grid-area="left-sidebar"].collapsed,
+.app-container aside.collapsed {
+	width: var(--sidebar-left-collapsed-width);
+	min-width: var(--sidebar-left-collapsed-width);
+	max-width: var(--sidebar-left-collapsed-width);
 }
 
 /* Mobile layout: collapse into header + main only.

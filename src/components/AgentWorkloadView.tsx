@@ -173,9 +173,9 @@ const AgentWorkloadView: React.FC<AgentWorkloadViewProps> = ({
 
   // Full grid view
   return (
-    <div className="flex-1 overflow-auto">
+    <div className="flex-1 overflow-auto bg-background">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background border-b border-border px-6 py-4">
+      <div className="sticky top-0 z-10 bg-card border-b border-border px-6 py-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <span className="text-[var(--accent-orange)]">◇</span>

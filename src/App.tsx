@@ -20,6 +20,10 @@ export default function App() {
 	const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
 	const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
 	const [currentView, setCurrentView] = useState<ViewMode>("tasks");
+	const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(() => {
+		const saved = localStorage.getItem("leftSidebarCollapsed");
+		return saved === "true";
+	});
 
 	const closeSidebars = useCallback(() => {
 		setIsLeftSidebarOpen(false);
@@ -88,10 +92,16 @@ export default function App() {
 		setShowPreviewTray(true);
 	}, []);
 
+	const toggleLeftSidebar = useCallback(() => {
+		const newCollapsed = !isLeftSidebarCollapsed;
+		setIsLeftSidebarCollapsed(newCollapsed);
+		localStorage.setItem("leftSidebarCollapsed", String(newCollapsed));
+	}, [isLeftSidebarCollapsed]);
+
 	return (
 		<>
 			<Authenticated>
-				<main className="app-container">
+				<main className={`app-container ${isLeftSidebarCollapsed ? "left-sidebar-collapsed" : ""}`}>
 					<Header
 						onOpenAgents={() => {
 							setIsLeftSidebarOpen(true);
@@ -124,17 +134,28 @@ export default function App() {
 							}}
 							onAddAgent={() => setShowAddAgentModal(true)}
 							onSelectAgent={(agentId) => setSelectedAgentId(agentId as Id<"agents">)}
+							isCollapsed={isLeftSidebarCollapsed}
+							onToggleCollapse={toggleLeftSidebar}
 						/>
 					) : (
-						<aside className="[grid-area:left-sidebar] bg-white border-r border-border flex-col overflow-hidden hidden md:flex">
-							<div className="px-4 py-3 border-b border-border">
+						<aside className={`[grid-area:left-sidebar] bg-white border-r border-border flex-col overflow-hidden hidden md:flex ${isLeftSidebarCollapsed ? "collapsed" : ""}`}>
+							<div className="px-4 py-3 border-b border-border flex items-center justify-between">
 								<div className="text-[11px] font-bold tracking-widest text-muted-foreground">
-									QUICK ACCESS
+									{!isLeftSidebarCollapsed && "QUICK ACCESS"}
 								</div>
+								<button
+									onClick={toggleLeftSidebar}
+									className="text-muted-foreground hover:text-foreground transition-colors"
+									aria-label={isLeftSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+								>
+									{isLeftSidebarCollapsed ? "→" : "←"}
+								</button>
 							</div>
-							<div className="p-4 space-y-4">
-								<AgentWorkloadView compact onSelectAgent={(agentId) => setSelectedAgentId(agentId)} />
-							</div>
+							{!isLeftSidebarCollapsed && (
+								<div className="p-4 space-y-4">
+									<AgentWorkloadView compact onSelectAgent={(agentId) => setSelectedAgentId(agentId)} />
+								</div>
+							)}
 						</aside>
 					)}
 
@@ -146,14 +167,14 @@ export default function App() {
 						/>
 					)}
 					{currentView === "agents" && (
-						<main className="[grid-area:main] bg-[#0a0a0a] flex flex-col overflow-hidden">
+						<main className="[grid-area:main] bg-muted/30 flex flex-col overflow-hidden">
 							<AgentWorkloadView
 								onSelectAgent={(agentId) => setSelectedAgentId(agentId)}
 							/>
 						</main>
 					)}
 					{currentView === "objectives" && (
-						<main className="[grid-area:main] bg-[#0a0a0a] flex flex-col overflow-hidden">
+						<main className="[grid-area:main] bg-muted/30 flex flex-col overflow-hidden">
 							<ObjectivesView />
 						</main>
 					)}
