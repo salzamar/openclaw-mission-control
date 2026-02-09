@@ -469,7 +469,7 @@ const MissionQueue: React.FC<MissionQueueProps> = ({ selectedTaskId, onSelectTas
 				onDragEnd={handleDragEnd}
 			>
 				<div 
-					className={`flex-1 grid gap-px bg-border overflow-x-auto ${showArchived ? "grid-cols-6" : "grid-cols-5"}`}
+					className={`flex-1 flex overflow-x-auto snap-x snap-mandatory md:grid gap-px bg-border ${showArchived ? "md:grid-cols-6" : "md:grid-cols-5"}`}
 					role="region"
 					aria-label="Task board"
 				>

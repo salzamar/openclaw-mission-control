@@ -26,7 +26,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
 	return (
 		<div
 			ref={setNodeRef}
-			className={`bg-secondary flex flex-col min-w-[250px] transition-colors ${
+			className={`bg-secondary flex flex-col w-[90vw] flex-shrink-0 snap-start md:w-auto md:min-w-[250px] transition-colors ${
 				isOver ? "drop-zone-active bg-[var(--accent-blue)]/5" : ""
 			}`}
 			role="region"

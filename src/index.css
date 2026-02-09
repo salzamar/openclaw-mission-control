@@ -399,3 +399,15 @@
 		transform: translateX(0);
 	}
 }
+
+/* Mobile Kanban scroll improvements */
+@media (max-width: 767px) {
+	[aria-label="Task board"] {
+		-webkit-overflow-scrolling: touch;
+		scrollbar-width: none;
+		-ms-overflow-style: none;
+	}
+	[aria-label="Task board"]::-webkit-scrollbar {
+		display: none;
+	}
+}
